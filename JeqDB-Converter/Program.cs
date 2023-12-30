@@ -123,7 +123,7 @@ namespace JeqDB_Converter
             try
             {
 #if DEBUG
-                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (x).csv");
+                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (y).csv");
 #else
                 string path = Console.ReadLine() ?? "";
                 Console.ForegroundColor = ConsoleColor.Cyan;
@@ -175,7 +175,7 @@ namespace JeqDB_Converter
                         text[2].AppendLine(data.Depth == -1 ? "" : "km");
                         text[3].Append(data.Mag == -1d ? "不明" : 'M');
                         text[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
-                        text[4].AppendLine(MaxIntInt2String(data.MaxInt));
+                        text[4].AppendLine(MaxIntInt2String(data.MaxInt,true));
                     }
                 }
                 g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
@@ -206,7 +206,7 @@ namespace JeqDB_Converter
             try
             {
 #if DEBUG
-                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (x).csv");
+                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (y).csv");
 #else
                 string path = Console.ReadLine() ?? "";
                 Console.ForegroundColor = ConsoleColor.Cyan;
@@ -277,7 +277,7 @@ namespace JeqDB_Converter
                             text[2].AppendLine(data.Depth == -1 ? "" : "km");
                             text[3].Append(data.Mag == -1d ? "不明" : 'M');
                             text[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
-                            text[4].AppendLine(MaxIntInt2String(data.MaxInt));
+                            text[4].AppendLine(MaxIntInt2String(data.MaxInt,true));
                         }
                     }
                     g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
