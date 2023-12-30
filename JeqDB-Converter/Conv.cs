@@ -66,21 +66,22 @@ namespace JeqDB_Converter
         /// int形式の震度をstring形式にします。
         /// </summary>
         /// <param name="maxInt">震度(1~9)</param>
+        /// <param name="hankaku">数字を半角にする場合true</param>
         /// <returns>string形式の震度</returns>
         /// <exception cref="ArgumentException">値が不正の時</exception>
-        public static string MaxIntInt2String(int maxInt)
+        public static string MaxIntInt2String(int maxInt, bool hankaku = false)
         {
             return maxInt switch
             {
-                1 => "震度１",
-                2 => "震度２",
-                3 => "震度３",
-                4 => "震度４",
-                5 => "震度５弱",
-                6 => "震度５強",
-                7 => "震度６弱",
-                8 => "震度６強",
-                9 => "震度７",
+                1 => hankaku ? "震度1" : "震度１",
+                2 => hankaku ? "震度2" : "震度２",
+                3 => hankaku ? "震度3" : "震度３",
+                4 => hankaku ? "震度4" : "震度４",
+                5 => hankaku ? "震度5弱" : "震度５弱",
+                6 => hankaku ? "震度5強" : "震度５強",
+                7 => hankaku ? "震度6弱" : "震度６弱",
+                8 => hankaku ? "震度6強" : "震度６強",
+                9 => hankaku ? "震度7" : "震度７",
                 _ => throw new ArgumentException("震度の変換に失敗しました。", nameof(maxInt)),
             };
         }

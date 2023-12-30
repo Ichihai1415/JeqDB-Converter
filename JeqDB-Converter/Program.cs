@@ -169,20 +169,20 @@ namespace JeqDB_Converter
                     g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * ZoomW) - size / 2, (int)((config.LatEnd - data.Lat) * ZoomH) - size / 2, size, size);
                     if (data.MaxInt >= config.TextInt)
                     {
-                        text[0].AppendLine(data.Time.ToString());
+                        text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                         text[1].AppendLine(data.Hypo);
-                        text[2].Append(data.Depth.ToString().Replace("-1", "不明"));
-                        text[2].AppendLine("km");
-                        text[3].Append('M');
-                        text[3].AppendLine(data.Mag.ToString("0.0").Replace("-1.0", "不明"));
+                        text[2].Append(data.Depth == -1 ? "不明" : data.Depth.ToString());
+                        text[2].AppendLine(data.Depth == -1 ? "" : "km");
+                        text[3].Append(data.Mag == -1d ? "不明" : 'M');
+                        text[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
                         text[4].AppendLine(MaxIntInt2String(data.MaxInt));
                     }
                 }
                 g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                 g.DrawString(text[0].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, config.MapSize, 0);
-                g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.225), 0);
-                g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.475), 0);
-                g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.575), 0);
+                g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.25), 0);
+                g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5), 0);
+                g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
                 g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
                 g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
                 bitmap.Save(config.SavePath, ImageFormat.Png);
@@ -213,15 +213,15 @@ namespace JeqDB_Converter
                 string[] datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
-                List<Data> datas = [.. datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time)];//データじゃないやつついでに緯度経度ないやつも除外
+                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 #if DEBUG
                 Config config = new()
                 {
                     SavePath = $"output\\{DateTime.Now:yyyyMMddHHmmss}",
                     StartTime = new DateTime(2023, 1, 1),
                     EndTime = new DateTime(2024, 1, 1),
-                    DrawSpan = new TimeSpan(6, 0, 0),
-                    DisappTime = new TimeSpan(96, 0, 0),
+                    DrawSpan = new TimeSpan(1, 0, 0),
+                    DisappTime = new TimeSpan(60, 0, 0),
                     MapSize = 1080,
                     LatSta = 20,
                     LatEnd = 50,
@@ -255,28 +255,8 @@ namespace JeqDB_Converter
                 DateTime DrawTime = config.StartTime;//描画対象時間
                 for (int i = 1; DrawTime < config.EndTime; i++)//DateTime:古<新==true
                 {
-                    List<Data> datas_Draw = [];
-                    List<Data> datas_Copy = datas.Select(item => new Data
-                    {
-                        Time = item.Time,
-                        Hypo = item.Hypo,
-                        Lat = item.Lat,
-                        Lon = item.Lon,
-                        Depth = item.Depth,
-                        Mag = item.Mag,
-                        MaxInt = item.MaxInt
-                    }).ToList();
-
-                    foreach (Data data in datas_Copy)
-                    {
-                        if (data.Time < DrawTime - config.DisappTime)//描画終了
-                            datas.RemoveAt(0);
-                        else if (data.Time < DrawTime + config.DrawSpan)//描画
-                            datas_Draw.Add(data);
-                        else//未描画
-                            break;
-                    }
-                    datas_Copy.Clear();
+                    datas = datas.SkipWhile(data => data.Time < DrawTime - config.DisappTime).ToList();//除外
+                    IEnumerable<Data> datas_Draw = datas.Where(data => data.Time < DrawTime + config.DrawSpan);//抜き出し
 
                     Bitmap bitmap = (Bitmap)baseMap.Clone();
                     Graphics g = Graphics.FromImage(bitmap);
@@ -291,28 +271,28 @@ namespace JeqDB_Converter
                         g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * ZoomW) - size / 2, (int)((config.LatEnd - data.Lat) * ZoomH) - size / 2, size, size);
                         if (data.MaxInt >= config.TextInt)
                         {
-                            text[0].AppendLine(data.Time.ToString());
+                            text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                             text[1].AppendLine(data.Hypo);
-                            text[2].Append(data.Depth.ToString().Replace("-1", "不明"));
-                            text[2].AppendLine("km");
-                            text[3].Append('M');
-                            text[3].AppendLine(data.Mag.ToString("0.0").Replace("-1.0", "不明"));
+                            text[2].Append(data.Depth == -1 ? "不明" : data.Depth.ToString());
+                            text[2].AppendLine(data.Depth == -1 ? "" : "km");
+                            text[3].Append(data.Mag == -1d ? "不明" : 'M');
+                            text[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
                             text[4].AppendLine(MaxIntInt2String(data.MaxInt));
                         }
                     }
                     g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                     g.DrawString(DrawTime.ToString("yyyy/MM/dd HH:mm:ss"), new Font(font, config.MapSize / 24, GraphicsUnit.Pixel), Brushes.White, 0, 0);
                     g.DrawString(text[0].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, config.MapSize, 0);
-                    g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.225), 0);
-                    g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.475), 0);
-                    g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.575), 0);
+                    g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.25), 0);
+                    g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5), 0);
+                    g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
                     g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
                     g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
                     string savePath = $"{config.SavePath}\\{i:d4}.png";
                     bitmap.Save(savePath, ImageFormat.Png);
                     g.Dispose();
                     bitmap.Dispose();
-                    ConWrite($"{DrawTime:yyyy/MM/dd HH:mm:ss} {i:d4}.png : {datas_Draw.Count}", ConsoleColor.Green);
+                    ConWrite($"{DrawTime:yyyy/MM/dd HH:mm:ss} {i:d4}.png : {datas_Draw.Count()}", ConsoleColor.Green);
                     DrawTime += config.DrawSpan;
                 }
                 ConWrite($"画像出力完了\n動画化(30fps)(画像ファイルがあるフォルダで): ffmpeg -framerate 30 -i %04d.png -vcodec libx264 -pix_fmt yuv420p -r 30 _output.mp4");
