@@ -202,11 +202,6 @@ namespace JeqDB_Converter
     public class Config
     {
         /// <summary>
-        /// 保存するパス
-        /// </summary>
-        public string SavePath { get; set; } = "";
-
-        /// <summary>
         /// 画像の高さ
         /// </summary>
         public int MapSize { get; set; }

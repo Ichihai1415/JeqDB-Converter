@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Runtime.Versioning;
 using System.Text;
+using System.Text.RegularExpressions;
 using static JeqDB_Converter.Conv;
 
 namespace JeqDB_Converter
@@ -30,18 +31,19 @@ namespace JeqDB_Converter
             ConWrite("> 1.複数ファイルの結合");
             ConWrite("> 2.画像描画");
             ConWrite("> 3.動画作成");
+            ConWrite("> 4.csv取得");
             int mode;
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 string? select = Console.ReadLine();
                 if (int.TryParse(select, null, out int selectNum))
-                    if (0 < selectNum && selectNum < 4)
+                    if (0 < selectNum && selectNum < 5)
                     {
                         mode = selectNum;
                         break;
                     }
-                ConWrite("値は1から3の間である必要があります。", ConsoleColor.Red);
+                ConWrite("値は1から4の間である必要があります。", ConsoleColor.Red);
             }
             switch (mode)
             {
@@ -54,7 +56,11 @@ namespace JeqDB_Converter
                 case 3:
                     ReadyVideo();
                     break;
+                case 4:
+                    GetCsv();
+                    break;
             }
+            Console.WriteLine();
             Main();
         }
 
@@ -134,7 +140,6 @@ namespace JeqDB_Converter
 #if DEBUG
                 Config config = new()
                 {
-                    SavePath = $"output\\{DateTime.Now:yyyyMMddHHmmss}.png",
                     MapSize = 2160,
                     LatSta = 20,
                     LatEnd = 50,
@@ -145,15 +150,15 @@ namespace JeqDB_Converter
 #else
                 Config config = new()
                 {
-                    SavePath = $"output\\{DateTime.Now:yyyyMMddHHmmss}.png",
-                    MapSize = (int)UserInput("画像の高さを入力してください。幅は16:9になるように計算されます。例:720/1080/2160/4320", typeof(int)),
-                    LatSta = (double)UserInput("緯度の始点(地図の下端)を入力してください。例:20", typeof(double)),
-                    LatEnd = (double)UserInput("緯度の終点(地図の上端)を入力してください。例:50", typeof(double)),
-                    LonSta = (double)UserInput("経度の始点(地図の左端)を入力してください。例:120", typeof(double)),
-                    LonEnd = (double)UserInput("経度の終点(地図の右端)を入力してください。例:150", typeof(double)),
-                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度1:1 震度5弱:5 震度6強:8のようにしてください。", typeof(int))
+                    MapSize = (int)UserInput("画像の高さを入力してください。幅は16:9になるように計算されます。例:720/1080/2160/4320", typeof(int), "1080"),
+                    LatSta = (double)UserInput("緯度の始点(地図の下端)を入力してください。例:20", typeof(double), "20"),
+                    LatEnd = (double)UserInput("緯度の終点(地図の上端)を入力してください。例:50", typeof(double), "50"),
+                    LonSta = (double)UserInput("経度の始点(地図の左端)を入力してください。例:120", typeof(double), "120"),
+                    LonEnd = (double)UserInput("経度の終点(地図の右端)を入力してください。例:150", typeof(double), "150"),
+                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度1:1 震度5弱:5 震度6強:8のようにしてください。", typeof(int), "3")
                 };
 #endif
+                string savePath = $"output\\image\\{DateTime.Now:yyyyMMddHHmmss}.png";
                 ConWrite("描画中...");
                 double ZoomW = config.MapSize / (config.LonEnd - config.LonSta);
                 double ZoomH = config.MapSize / (config.LatEnd - config.LatSta);
@@ -175,7 +180,7 @@ namespace JeqDB_Converter
                         text[2].AppendLine(data.Depth == -1 ? "" : "km");
                         text[3].Append(data.Mag == -1d ? "不明" : 'M');
                         text[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
-                        text[4].AppendLine(MaxIntInt2String(data.MaxInt,true));
+                        text[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
                     }
                 }
                 g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
@@ -185,8 +190,9 @@ namespace JeqDB_Converter
                 g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
                 g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
                 g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
-                bitmap.Save(config.SavePath, ImageFormat.Png);
-                ConWrite($"{config.SavePath} : {datas.Count()}", ConsoleColor.Green);
+                Directory.CreateDirectory("output\\image");
+                bitmap.Save(savePath, ImageFormat.Png);
+                ConWrite($"{savePath} : {datas.Count()}", ConsoleColor.Green);
                 g.Dispose();
                 bitmap.Dispose();
             }
@@ -196,7 +202,9 @@ namespace JeqDB_Converter
             }
         }
 
-
+        /// <summary>
+        /// 動画用画像を描画します。
+        /// </summary>
         [SupportedOSPlatform("windows")]//CA1416回避
         public static void ReadyVideo()
         {
@@ -217,7 +225,6 @@ namespace JeqDB_Converter
 #if DEBUG
                 Config config = new()
                 {
-                    SavePath = $"output\\{DateTime.Now:yyyyMMddHHmmss}",
                     StartTime = new DateTime(2023, 1, 1),
                     EndTime = new DateTime(2024, 1, 1),
                     DrawSpan = new TimeSpan(1, 0, 0),
@@ -232,21 +239,21 @@ namespace JeqDB_Converter
 #else
                 Config config = new()
                 {
-                    SavePath = $"output\\{(string)UserInput("画像を保存するフォルダのパス(output\\)を入力してください。", typeof(string))}",
                     StartTime = (DateTime)UserInput("開始時刻を入力してください。例(2023年1月1日):2023/01/01 00:00:00", typeof(DateTime)),
                     EndTime = (DateTime)UserInput("終了時刻を入力してください。この時間未満まで描画されます。例(2024年1月1日):2024/01/01 00:00:00", typeof(DateTime)),
                     DrawSpan = (TimeSpan)UserInput("描画間隔を入力してください。この時間毎に描画時刻からこの時間までのものが描画されます。例(6時間):06:00:00", typeof(TimeSpan)),
                     DisappTime = (TimeSpan)UserInput("消失時間を入力してください。発生時刻からこの時間過ぎたら完全に消えます。例(1日):1.00:00:00", typeof(TimeSpan)),
                     MapSize = (int)UserInput("画像の高さを入力してください。幅は16:9になるように計算されます。例:720/1080/2160/4320", typeof(int)),
-                    LatSta = (double)UserInput("緯度の始点(地図の下端)を入力してください。例:20", typeof(double)),
-                    LatEnd = (double)UserInput("緯度の終点(地図の上端)を入力してください。例:50", typeof(double)),
-                    LonSta = (double)UserInput("経度の始点(地図の左端)を入力してください。例:120", typeof(double)),
-                    LonEnd = (double)UserInput("経度の終点(地図の右端)を入力してください。例:150", typeof(double)),
-                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度1:1 震度5弱:5 震度6強:8のようにしてください。", typeof(int))
+                    LatSta = (double)UserInput("緯度の始点(地図の下端)を入力してください。例:20", typeof(double), "20"),
+                    LatEnd = (double)UserInput("緯度の終点(地図の上端)を入力してください。例:50", typeof(double), "50"),
+                    LonSta = (double)UserInput("経度の始点(地図の左端)を入力してください。例:120", typeof(double), "120"),
+                    LonEnd = (double)UserInput("経度の終点(地図の右端)を入力してください。例:150", typeof(double), "150"),
+                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度1:1 震度5弱:5 震度6強:8のようにしてください。", typeof(int), "3")
                 };
 #endif
                 ConWrite("描画中...");
-                Directory.CreateDirectory(config.SavePath);
+                string saveDir = $"output\\videoimage\\{DateTime.Now:yyyyMMddHHmmss}";
+                Directory.CreateDirectory(saveDir);
 
                 double ZoomW = config.MapSize / (config.LonEnd - config.LonSta);
                 double ZoomH = config.MapSize / (config.LatEnd - config.LatSta);
@@ -277,7 +284,7 @@ namespace JeqDB_Converter
                             text[2].AppendLine(data.Depth == -1 ? "" : "km");
                             text[3].Append(data.Mag == -1d ? "不明" : 'M');
                             text[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
-                            text[4].AppendLine(MaxIntInt2String(data.MaxInt,true));
+                            text[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
                         }
                     }
                     g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
@@ -288,7 +295,7 @@ namespace JeqDB_Converter
                     g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
                     g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
                     g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
-                    string savePath = $"{config.SavePath}\\{i:d4}.png";
+                    string savePath = $"{saveDir}\\{i:d4}.png";
                     bitmap.Save(savePath, ImageFormat.Png);
                     g.Dispose();
                     bitmap.Dispose();
@@ -363,14 +370,88 @@ namespace JeqDB_Converter
 #pragma warning restore CS8604 // Null 参照引数の可能性があります。
         }
 
+        public static HttpClient client = new();
+
+        /// <summary>
+        /// 震度データベースcsvを取得します。
+        /// </summary>
+        public static void GetCsv()
+        {
+            try
+            {
+                ConWrite("一度に取得できる数は1000までとなるので注意してください。");
+#if DEBUG
+                DateTime startTime = DateTime.Parse("2023/01/01 00:00");
+                DateTime endTime = DateTime.Parse("2023/01/01 23:59");
+                double minMag = 0;
+                double maxMag = 9.9;
+                int minDepth = 0;
+                int maxDepth = 999;
+                string minMaxInt = "1";
+#else
+                DateTime startTime = (DateTime)UserInput("開始日時を入力してください。例:2023/01/01 00:00", typeof(DateTime));
+                DateTime endTime = (DateTime)UserInput("終了日時を入力してください。例:2023/01/31 23:59", typeof(DateTime));
+                double minMag = (double)UserInput("最小マグニチュードを入力してください。例:0", typeof(double), "0");
+                double maxMag = (double)UserInput("最大マグニチュードを入力してください。例:9.9", typeof(double), "9.9");
+                int minDepth = (int)UserInput("最小深さを入力してください。例:0", typeof(int), "0");
+                int maxDepth = (int)UserInput("最大深さを入力してください。例:999", typeof(int), "999");
+                string minMaxInt = (string)UserInput("最大震度x以上 xを入力してください。ただし5弱:A,5強:B,6弱:C,6強:Dです。例:1", typeof(string), "1");
+#endif
+                string savePath = $"output\\csv\\{startTime:yyyyMMddHHmm}-{endTime:yyyyMMddHHmm}.csv";
+                ConWrite("取得中...");
+                string response = Regex.Unescape(client.GetStringAsync($"https://www.data.jma.go.jp/svd/eqdb/data/shindo/api/api.php?mode=search&dateTimeF[]={startTime:yyyy-MM-dd}&dateTimeF[]={startTime:HH:mm}&dateTimeT[]={endTime:yyyy-MM-dd}&dateTimeT[]={endTime:HH:mm}&mag[]={minMag:0.0}&mag[]={maxMag:0.0}&dep[]={minDepth:000}&dep[]={maxDepth:000}&epi[]=99&pref[]=99&city[]=99&station[]=99&obsInt=1&maxInt={minMaxInt}&additionalC=true&Sort=S0&Comp=C0&seisCount=false&observed=false").Result);
+                JObject json = JObject.Parse(response);
+                ConWrite($"データ個数 : {json.SelectToken("res")?.Count()}", ConsoleColor.Green);
+
+                JToken? str = json.SelectToken("str");
+                if (str != null)
+                    foreach (JToken data in str)
+                        ConWrite((string?)data, ConsoleColor.Green);
+                ConWrite("変換中...");
+                StringBuilder csv = new("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+
+                JToken? res = json.SelectToken("res");
+                if (res != null)
+                    foreach (JToken data in res)
+                    {
+                        var ot = (string?)data.SelectToken("ot");
+                        if (ot == null)
+                            continue;
+                        csv.Append(ot.Replace(" ", ","));
+                        csv.Append(',');
+                        csv.Append((string?)data.SelectToken("name"));
+                        csv.Append(',');
+                        csv.Append((string?)data.SelectToken("latS"));
+                        csv.Append(',');
+                        csv.Append((string?)data.SelectToken("lonS"));
+                        csv.Append(',');
+                        csv.Append((string?)data.SelectToken("dep"));
+                        csv.Append(',');
+                        csv.Append((string?)data.SelectToken("mag"));
+                        csv.Append(',');
+                        csv.Append((string?)data.SelectToken("maxI"));
+                        csv.AppendLine();
+                    }
+                Directory.CreateDirectory("output\\csv");
+                File.WriteAllText(savePath, csv.ToString());
+                ConWrite(savePath, ConsoleColor.Green);
+                ConWrite("保存しました。");
+            }
+            catch (Exception ex)
+            {
+                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。", ConsoleColor.Red);
+            }
+        }
+
         /// <summary>
         /// ユーザーに値の入力を求めます。
         /// </summary>
         /// <remarks>入力値が変換可能なとき返ります。</remarks>
         /// <param name="message">表示するメッセージ</param>
         /// <param name="resType">変換するタイプ</param>
+        /// <param name="nullText">何も入力されなかった場合に選択</param>
         /// <returns><paramref name="resType"/>で指定したタイプに変換された入力された値</returns>
-        public static object UserInput(string message, Type resType)
+        public static object UserInput(string message, Type resType, string? nullText = null)
         {
             while (true)
                 try
@@ -379,7 +460,12 @@ namespace JeqDB_Converter
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     string? input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input))
-                        throw new Exception("値を入力してください。");
+                    {
+                        if (string.IsNullOrEmpty(nullText))
+                            throw new Exception("値を入力してください。");
+                        input = nullText;
+                        ConWrite(nullText + "(自動入力)", ConsoleColor.Cyan);
+                    }
                     return resType.Name switch
                     {
                         "String" => input,
@@ -406,7 +492,7 @@ namespace JeqDB_Converter
         /// </summary>
         /// <param name="text">出力するテキスト</param>
         /// <param name="withLine">改行するか</param>
-        public static void ConWrite(string text, bool withLine = true)
+        public static void ConWrite(string? text, bool withLine = true)
         {
             ConWrite(text, defaultColor, withLine);
         }
@@ -426,7 +512,7 @@ namespace JeqDB_Converter
         /// <param name="text">出力するテキスト</param>
         /// <param name="color">表示する色</param>
         /// <param name="withLine">改行するか</param>
-        public static void ConWrite(string text, ConsoleColor color, bool withLine = true)
+        public static void ConWrite(string? text, ConsoleColor color, bool withLine = true)
         {
             Console.ForegroundColor = color;
             if (withLine)
