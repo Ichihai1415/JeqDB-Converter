@@ -10,6 +10,7 @@
     <Company>$(Authors)</Company>
     <Version>$(VersionPrefix)</Version>
     <Platforms>AnyCPU;x64</Platforms>
+    <Configurations>Debug;Release;Test</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

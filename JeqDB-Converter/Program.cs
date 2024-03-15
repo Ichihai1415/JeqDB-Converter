@@ -12,7 +12,6 @@ namespace JeqDB_Converter
 {
     internal class Program
     {
-
         /// <summary>
         /// 文字描画用フォント
         /// </summary>
@@ -27,6 +26,9 @@ namespace JeqDB_Converter
             pfc.AddFontFile("Koruri-Regular.ttf");
             font = pfc.Families[0];
             Directory.CreateDirectory("output");
+            ConWrite("\n\n        JeqDB-Converter v1.0.1\n        https://github.com/Ichihai1415/JeqDB-Converter\n        READMEを確認してください。\n\n");
+
+        restart:
             ConWrite("モードを入力してください。");
             ConWrite("> 1.複数ファイルの結合");
             ConWrite("> 2.画像描画");
@@ -61,7 +63,7 @@ namespace JeqDB_Converter
                     break;
             }
             Console.WriteLine();
-            Main();
+            goto restart;
         }
 
         /// <summary>
@@ -69,7 +71,7 @@ namespace JeqDB_Converter
         /// </summary>
         public static void MergeFiles()
         {
-            ConWrite("結合するファイルのパスを1行ごとに入力してください。空文字が入力されたら結合を開始します。");
+            ConWrite("結合するファイルのパスを1行ごとに入力してください。空文字が入力されたら結合を開始します。※観測震度検索をしているものとしていないものの結合はできますが他ソフトで処理をする際エラーとなる可能性があります。このソフトでは問題ありません。");
             List<string> files = [];
             while (true)
             {
@@ -93,7 +95,7 @@ namespace JeqDB_Converter
                 {
                     ConWrite("読み込み中... ", false);
                     ConWrite(file, ConsoleColor.Green);
-                    stringBuilder.Append(File.ReadAllText(file).Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
+                    stringBuilder.Append(File.ReadAllText(file).Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", ""));
                 }
                 else
                     ConWrite($"{file}が見つかりません。", ConsoleColor.Red);
@@ -111,10 +113,10 @@ namespace JeqDB_Converter
                 }
                 catch (Exception ex)
                 {
-                    ConWrite("エラーが発生しました。" + ex.Message + "再度入力してください。", ConsoleColor.Red);
+                    ConWrite("エラーが発生しました。" + ex.Message + " 再度入力してください。原因がわからない場合報告してください。", ConsoleColor.Red);
                 }
             }
-            ConWrite("保存しました。");
+            ConWrite("保存しました。最初の行の\",検索対象最大震度\"は付かないため含まれる場合手動で追加してください。");
         }
 
         /// <summary>
@@ -123,13 +125,13 @@ namespace JeqDB_Converter
         [SupportedOSPlatform("windows")]//CA1416回避
         public static void DrawImage()
         {
-#if !DEBUG
+#if !TEST
             ConWrite("読み込むcsvファイルのパスを入力してください。");
 #endif
             try
             {
-#if DEBUG
-                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (y).csv");
+#if TEST
+                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (n).csv");
 #else
                 string path = Console.ReadLine() ?? "";
                 Console.ForegroundColor = ConsoleColor.Cyan;
@@ -137,7 +139,7 @@ namespace JeqDB_Converter
 #endif
                 ConWrite("変換中...");
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
-#if DEBUG
+#if TEST
                 Config config = new()
                 {
                     MapSize = 2160,
@@ -145,7 +147,8 @@ namespace JeqDB_Converter
                     LatEnd = 50,
                     LonSta = 120,
                     LonEnd = 150,
-                    TextInt = 3
+                    MagSizeType = 22,
+                    TextInt = 1
                 };
 #else
                 Config config = new()
@@ -155,13 +158,19 @@ namespace JeqDB_Converter
                     LatEnd = (double)UserInput("緯度の終点(地図の上端)を入力してください。例:50", typeof(double), "50"),
                     LonSta = (double)UserInput("経度の始点(地図の左端)を入力してください。例:120", typeof(double), "120"),
                     LonEnd = (double)UserInput("経度の終点(地図の右端)を入力してください。例:150", typeof(double), "150"),
-                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度1:1 震度5弱:5 震度6強:8のようにしてください。", typeof(int), "3")
+                    MagSizeType = (int)UserInput("円の描画サイズのタイプを入力してください。マグニチュードは1未満の場合1に置き換えられます。\n" +
+                    "> 11. [既定] マグニチュードx(画像の高さ÷216)\n" +
+                    "> 12. 11の2倍\n" +
+                    "> 13. 11の3倍\n" +
+                    "> 21. [マグニチュード強調] マグニチュードxマグニチュードx(画像の高さ÷216)\n" +
+                    "> 22. 21の2倍", typeof(int), "1"),
+                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。", typeof(int), "3")
                 };
 #endif
                 string savePath = $"output\\image\\{DateTime.Now:yyyyMMddHHmmss}.png";
                 ConWrite("描画中...");
-                double ZoomW = config.MapSize / (config.LonEnd - config.LonSta);
-                double ZoomH = config.MapSize / (config.LatEnd - config.LatSta);
+                double zoomW = config.MapSize / (config.LonEnd - config.LonSta);
+                double zoomH = config.MapSize / (config.LatEnd - config.LatSta);
                 Bitmap bitmap = DrawMap(config);
                 Graphics g = Graphics.FromImage(bitmap);
 
@@ -169,10 +178,16 @@ namespace JeqDB_Converter
                 foreach (Data data in datas)
                 {
                     int size = (int)(Math.Max(1, data.Mag) * config.MapSize / 216);
+                    if (config.MagSizeType / 10 == 2)//2x
+                        size = (int)(Math.Pow(Math.Max(1, data.Mag), 2) * config.MapSize / 216);
+                    if (config.MagSizeType % 10 == 2)//x2
+                        size *= 2;
+                    else if (config.MagSizeType % 10 == 3)
+                        size *= 3;
                     int alpha = 204;
-                    g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * ZoomW) - size / 2, (int)((config.LatEnd - data.Lat) * ZoomH) - size / 2, size, size);
-                    g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * ZoomW) - size / 2, (int)((config.LatEnd - data.Lat) * ZoomH) - size / 2, size, size);
-                    if (data.MaxInt >= config.TextInt)
+                    g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
+                    g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
+                    if (data.MaxInt >= config.TextInt || -data.MaxInt >= config.TextInt)
                     {
                         text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                         text[1].AppendLine(data.Hypo);
@@ -192,13 +207,13 @@ namespace JeqDB_Converter
                 g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
                 Directory.CreateDirectory("output\\image");
                 bitmap.Save(savePath, ImageFormat.Png);
-                ConWrite($"{savePath} : {datas.Count()}", ConsoleColor.Green);
+                ConWrite($"{Path.GetFullPath(savePath)} : {datas.Count()}", ConsoleColor.Green);
                 g.Dispose();
                 bitmap.Dispose();
             }
             catch (Exception ex)
             {
-                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。", ConsoleColor.Red);
+                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。原因がわからない場合報告してください。", ConsoleColor.Red);
             }
         }
 
@@ -208,12 +223,12 @@ namespace JeqDB_Converter
         [SupportedOSPlatform("windows")]//CA1416回避
         public static void ReadyVideo()
         {
-#if !DEBUG
+#if !TEST
             ConWrite("読み込むcsvファイルのパスを入力してください。");
 #endif
             try
             {
-#if DEBUG
+#if TEST
                 string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (y).csv");
 #else
                 string path = Console.ReadLine() ?? "";
@@ -222,7 +237,7 @@ namespace JeqDB_Converter
 #endif
                 ConWrite("変換中...");
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
-#if DEBUG
+#if TEST
                 Config config = new()
                 {
                     StartTime = new DateTime(2023, 1, 1),
@@ -234,6 +249,7 @@ namespace JeqDB_Converter
                     LatEnd = 50,
                     LonSta = 120,
                     LonEnd = 150,
+                    MagSizeType = 21,
                     TextInt = 3
                 };
 #else
@@ -248,7 +264,13 @@ namespace JeqDB_Converter
                     LatEnd = (double)UserInput("緯度の終点(地図の上端)を入力してください。例:50", typeof(double), "50"),
                     LonSta = (double)UserInput("経度の始点(地図の左端)を入力してください。例:120", typeof(double), "120"),
                     LonEnd = (double)UserInput("経度の終点(地図の右端)を入力してください。例:150", typeof(double), "150"),
-                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度1:1 震度5弱:5 震度6強:8のようにしてください。", typeof(int), "3")
+                    MagSizeType = (int)UserInput("円の描画サイズのタイプを入力してください。マグニチュードは1未満の場合1に置き換えられます。\n" +
+                    "> 11. [既定] マグニチュードx(画像の高さ÷216)\n" +
+                    "> 12. 11の2倍\n" +
+                    "> 13. 11の3倍\n" +
+                    "> 21. [マグニチュード強調] マグニチュードxマグニチュードx(画像の高さ÷216)\n" +
+                    "> 22. 21の2倍", typeof(int), "1"),
+                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。", typeof(int), "3")
                 };
 #endif
                 ConWrite("描画中...");
@@ -262,7 +284,7 @@ namespace JeqDB_Converter
                 DateTime DrawTime = config.StartTime;//描画対象時間
                 for (int i = 1; DrawTime < config.EndTime; i++)//DateTime:古<新==true
                 {
-                    datas = datas.SkipWhile(data => data.Time < DrawTime - config.DisappTime).ToList();//除外
+                    datas = datas.SkipWhile(data => data.Time < DrawTime - config.DisappTime).ToList();//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
                     IEnumerable<Data> datas_Draw = datas.Where(data => data.Time < DrawTime + config.DrawSpan);//抜き出し
 
                     Bitmap bitmap = (Bitmap)baseMap.Clone();
@@ -271,6 +293,12 @@ namespace JeqDB_Converter
                     foreach (Data data in datas_Draw)
                     {
                         int size = (int)(Math.Max(1, data.Mag) * config.MapSize / 216);
+                        if (config.MagSizeType / 10 == 2)//2x
+                            size = (int)(Math.Pow(Math.Max(1, data.Mag), 2) * config.MapSize / 216);
+                        if (config.MagSizeType % 10 == 2)//x2
+                            size *= 2;
+                        else if (config.MagSizeType % 10 == 3)
+                            size *= 3;
                         int alpha = 204;
                         if (data.Time < DrawTime)//描画時間より前
                             alpha = (int)((1d - (DrawTime - data.Time).TotalSeconds / config.DisappTime.TotalSeconds) * alpha);//消える時間の割合*基本透明度
@@ -306,7 +334,7 @@ namespace JeqDB_Converter
             }
             catch (Exception ex)
             {
-                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。", ConsoleColor.Red);
+                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。原因がわからない場合報告してください。", ConsoleColor.Red);
             }
         }
 
@@ -380,7 +408,7 @@ namespace JeqDB_Converter
             try
             {
                 ConWrite("一度に取得できる数は1000までとなるので注意してください。");
-#if DEBUG
+#if TEST
                 DateTime startTime = DateTime.Parse("2023/01/01 00:00");
                 DateTime endTime = DateTime.Parse("2023/01/01 23:59");
                 double minMag = 0;
