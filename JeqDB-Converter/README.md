@@ -4,7 +4,7 @@
 
 ## **[.NET 8.0 ランタイム x64](https://dotnet.microsoft.com/ja-jp/download/dotnet/8.0)** が必要です。
 
-.NET デスクトップ ランタイム8.0.x x64をインストールすればいいはずです。だめだったらx86などを試してください。
+.NET デスクトップ ランタイム8.0.x x64をインストールすればいいはずです。
 
 ---
 
@@ -13,10 +13,13 @@
 ### フォント:[Koruri](https://koruri.github.io/)
 
 ### 日本地図データ:[気象庁 予報区等GISデータ](https://www.data.jma.go.jp/developer/gis.html)
+加工(簡素化)しています。
 
 ### 世界地図データ:[Natural Earth](https://www.naturalearthdata.com/downloads/)
+加工(簡素化、日本部分を削除)しています。
 
-を加工しています。
+日本地図データは[このページ](https://github.com/Ichihai1415/JMA-GIS-GeoJSON)のものも使えるはずです。ダウンロードして`map-jp.geojson`を変えてください。(同梱しているのは`AreaInformationPrefectureEarthquake_GIS_20190125_01.geojson`)
+例えば`AreaInformationPrefectureEarthquake_GIS_20190125_1.geojson`(`_01`ではなく`_1`のほう)を使えばもう少し細かく描画されます。
 
 ## 概要
 
@@ -46,8 +49,19 @@
 
 ## 更新履歴
 
+### v1.0.1
+
+2024/03/15
+
+- 円のサイズ計算の方法を選択可能に
+- 震度５,震度６(強弱ないもの)が含まれるものの描画に失敗する問題を修正
+- 観測震度検索されたcsvファイルの結合で正確にできない問題を修正
+- 補足文、起動表示を追加
+- 地図データを更新(微妙に細かく)
+- READMEに日本地図データの変更について等追記
+
 ### v1.0.0
 
 2023/12/31
 
-複数ファイルの結合、画像描画、動画作成、csv取得機能追加
+- 複数ファイルの結合、画像描画、動画作成、csv取得機能追加

@@ -53,8 +53,10 @@ namespace JeqDB_Converter
                 "震度２" => 2,
                 "震度３" => 3,
                 "震度４" => 4,
+                "震度５" => -5,
                 "震度５弱" => 5,
                 "震度５強" => 6,
+                "震度６" => -7,
                 "震度６弱" => 7,
                 "震度６強" => 8,
                 "震度７" => 9,
@@ -77,8 +79,10 @@ namespace JeqDB_Converter
                 2 => hankaku ? "震度2" : "震度２",
                 3 => hankaku ? "震度3" : "震度３",
                 4 => hankaku ? "震度4" : "震度４",
+                -5 => hankaku ? "震度5" : "震度５",
                 5 => hankaku ? "震度5弱" : "震度５弱",
                 6 => hankaku ? "震度5強" : "震度５強",
+                -7 => hankaku ? "震度6" : "震度６",
                 7 => hankaku ? "震度6弱" : "震度６弱",
                 8 => hankaku ? "震度6強" : "震度６強",
                 9 => hankaku ? "震度7" : "震度７",
@@ -148,12 +152,12 @@ namespace JeqDB_Converter
                 t += 1;
             else if (t > 1)
                 t -= 1;
-            if (t < 1.0 / 6.0)
+            if (t < 1d / 6d)
                 return p + (q - p) * 6 * t;
-            else if (t < 1.0 / 2.0)
+            else if (t < 1d / 2d)
                 return q;
-            else if (t < 2.0 / 3.0)
-                return p + (q - p) * (2.0 / 3.0 - t) * 6;
+            else if (t < 2d / 3d)
+                return p + (q - p) * (2d / 3d - t) * 6;
             return p;
         }
     }
@@ -204,32 +208,44 @@ namespace JeqDB_Converter
         /// <summary>
         /// 画像の高さ
         /// </summary>
-        public int MapSize { get; set; }
+        public int MapSize { get; set; } = 1080;
 
         /// <summary>
         /// 緯度の始点
         /// </summary>
-        public double LatSta { get; set; }
+        public double LatSta { get; set; } = 20;
 
         /// <summary>
         /// 緯度の終点
         /// </summary>
-        public double LatEnd { get; set; }
+        public double LatEnd { get; set; } = 50;
 
         /// <summary>
         /// 経度の始点
         /// </summary>
-        public double LonSta { get; set; }
+        public double LonSta { get; set; } = 120;
 
         /// <summary>
         /// 経度の終点
         /// </summary>
-        public double LonEnd { get; set; }
+        public double LonEnd { get; set; } = 150;
+
+        /// <summary>
+        /// マグニチュードの大きさのタイプ
+        /// </summary>
+        /// <remarks>
+        /// 11. [既定] マグニチュードx(画像の高さ÷216) <br/>
+        /// 12. 11の2倍 <br/>
+        /// 13. 11の3倍 <br/>
+        /// 21. [マグニチュード強調] マグニチュードxマグニチュードx(画像の高さ÷216) <br/>
+        /// 22. 21の2倍 <br/>
+        /// </remarks>
+        public int MagSizeType { get; set; } = 11;
 
         /// <summary>
         /// テキスト表示最小震度
         /// </summary>
-        public int TextInt { get; set; }
+        public int TextInt { get; set; } = 3;
 
         /// <summary>
         /// [動画のみ]描画開始日時
