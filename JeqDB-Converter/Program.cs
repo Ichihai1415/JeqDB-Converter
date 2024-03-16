@@ -142,9 +142,9 @@ namespace JeqDB_Converter
 #if TEST
                 var datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (n).csv");
 #else
-                string path = Console.ReadLine() ?? "";
+                var path = Console.ReadLine() ?? "";
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                string[] datas_ = File.ReadAllLines(path.Replace("\"", ""));
+                var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
@@ -160,7 +160,7 @@ namespace JeqDB_Converter
                     TextInt = 1
                 };
 #else
-                Config config = new()
+                var config = new Config()
                 {
                     MapSize = (int)UserInput("画像の高さを入力してください。幅は16:9になるように計算されます。例:720/1080/2160/4320", typeof(int), "1080"),
                     LatSta = (double)UserInput("緯度の始点(地図の下端)を入力してください。例:20", typeof(double), "20"),
@@ -216,7 +216,7 @@ namespace JeqDB_Converter
                 g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, new RectangleF(new Point((int)(config.MapSize * 1.5), -oneLineHeight), depthSize), string_Right);
                 g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
                 g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
-                g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
+                g.DrawLine(new Pen(Color.White, config.MapSize / 1024f), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
                 Directory.CreateDirectory("output\\image");
                 bitmap.Save(savePath, ImageFormat.Png);
                 ConWrite($"{Path.GetFullPath(savePath)} : {datas.Count()}", ConsoleColor.Green);
@@ -243,9 +243,9 @@ namespace JeqDB_Converter
 #if TEST
                 var datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (y).csv");
 #else
-                string path = Console.ReadLine() ?? "";
+                var path = Console.ReadLine() ?? "";
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                string[] datas_ = File.ReadAllLines(path.Replace("\"", ""));
+                var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
@@ -265,7 +265,7 @@ namespace JeqDB_Converter
                     TextInt = 3
                 };
 #else
-                Config config = new()
+                var config = new Config()
                 {
                     StartTime = (DateTime)UserInput("開始時刻を入力してください。例(2023年1月1日):2023/01/01 00:00:00", typeof(DateTime)),
                     EndTime = (DateTime)UserInput("終了時刻を入力してください。この時間未満まで描画されます。例(2024年1月1日):2024/01/01 00:00:00", typeof(DateTime)),
@@ -337,7 +337,7 @@ namespace JeqDB_Converter
                     g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, new RectangleF(new Point((int)(config.MapSize * 1.5), -oneLineHeight), depthSize), string_Right);
                     g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
                     g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
-                    g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
+                    g.DrawLine(new Pen(Color.White, config.MapSize / 1024f), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
                     var savePath = $"{saveDir}\\{i:d4}.png";
                     bitmap.Save(savePath, ImageFormat.Png);
                     g.Dispose();
@@ -370,10 +370,9 @@ namespace JeqDB_Converter
             {
                 if (!json_1.SelectToken("geometry").Any())
                     continue;
-                List<Point> points = [];
-                points.AddRange(json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))));
-                if (points.Count > 2)
-                    maps.AddPolygon(points.ToArray());
+                var points = json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))).ToArray();
+                if (points.Length > 2)
+                    maps.AddPolygon(points);
             }
             g.FillPath(new SolidBrush(Color.FromArgb(100, 100, 150)), maps);
 
@@ -384,24 +383,22 @@ namespace JeqDB_Converter
             {
                 if ((string?)json_1.SelectToken("geometry.type") == "Polygon")
                 {
-                    List<Point> points = [];
-                    points.AddRange(json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))));
-                    if (points.Count > 2)
-                        maps.AddPolygon(points.ToArray());
+                    var points = json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))).ToArray();
+                    if (points.Length > 2)
+                        maps.AddPolygon(points);
                 }
                 else
                 {
                     foreach (var json_2 in json_1.SelectToken("geometry.coordinates"))
                     {
-                        List<Point> points = [];
-                        points.AddRange(json_2.SelectToken("[0]").Select(json_3 => new Point((int)(((double)json_3.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_3.SelectToken("[1]")) * zoomH))));
-                        if (points.Count > 2)
-                            maps.AddPolygon(points.ToArray());
+                        var points = json_2.SelectToken("[0]").Select(json_3 => new Point((int)(((double)json_3.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_3.SelectToken("[1]")) * zoomH))).ToArray();
+                        if (points.Length > 2)
+                            maps.AddPolygon(points);
                     }
                 }
             }
             g.FillPath(new SolidBrush(Color.FromArgb(90, 90, 120)), maps);
-            g.DrawPath(new Pen(Color.FromArgb(127, 255, 255, 255), (int)(config.MapSize / 1080d)), maps);
+            g.DrawPath(new Pen(Color.FromArgb(127, 255, 255, 255), config.MapSize / 1080f), maps);
             var mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
             g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), Brushes.White, config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
             g.Dispose();
