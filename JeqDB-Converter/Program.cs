@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -12,12 +13,20 @@ namespace JeqDB_Converter
 {
     internal class Program
     {
+#pragma warning disable CS8618 // null 非許容のフィールドには、コンストラクターの終了時に null 以外の値が入っていなければなりません。Null 許容として宣言することをご検討ください。
         /// <summary>
         /// 文字描画用フォント
         /// </summary>
-#pragma warning disable CS8618 // null 非許容のフィールドには、コンストラクターの終了時に null 以外の値が入っていなければなりません。Null 許容として宣言することをご検討ください。
         public static FontFamily font;
+        /// <summary>
+        /// 右寄せ用
+        /// </summary>
+        public static StringFormat string_Right;
 #pragma warning restore CS8618 // null 非許容のフィールドには、コンストラクターの終了時に null 以外の値が入っていなければなりません。Null 許容として宣言することをご検討ください。
+        /// <summary>
+        /// 配色設定
+        /// </summary>
+        public static Config_Color color = new();
 
         [SupportedOSPlatform("windows")]//CA1416回避
         static void Main()
@@ -25,8 +34,16 @@ namespace JeqDB_Converter
             PrivateFontCollection pfc = new();
             pfc.AddFontFile("Koruri-Regular.ttf");
             font = pfc.Families[0];
+            string_Right = new()
+            {
+                Alignment = StringAlignment.Far,
+                LineAlignment = StringAlignment.Far
+            };
             Directory.CreateDirectory("output");
-            ConWrite("\n\n        JeqDB-Converter v1.0.1\n        https://github.com/Ichihai1415/JeqDB-Converter\n        READMEを確認してください。\n\n");
+            if (File.Exists("colors.json"))
+                color = JsonConvert.DeserializeObject<Config_Color>(File.ReadAllText("colors.json")) ?? new Config_Color();
+            File.WriteAllText("colors.json", JsonConvert.SerializeObject(color, Formatting.Indented));
+            ConWrite("\n\n        JeqDB-Converter v1.0.2\n        https://github.com/Ichihai1415/JeqDB-Converter\n        READMEを確認してください。\n\n");
 
         restart:
             ConWrite("モードを入力してください。");
@@ -34,21 +51,26 @@ namespace JeqDB_Converter
             ConWrite("> 2.画像描画");
             ConWrite("> 3.動画作成");
             ConWrite("> 4.csv取得");
+            ConWrite("> 0.終了");
             int mode;
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                string? select = Console.ReadLine();
+                var select = Console.ReadLine();
                 if (int.TryParse(select, null, out int selectNum))
-                    if (0 < selectNum && selectNum < 5)
+                    if (0 <= selectNum && selectNum <= 4)
                     {
                         mode = selectNum;
                         break;
                     }
-                ConWrite("値は1から4の間である必要があります。", ConsoleColor.Red);
+                ConWrite("値は0から4の間である必要があります。", ConsoleColor.Red);
             }
             switch (mode)
             {
+                case 0:
+                    Console.ForegroundColor = defaultColor;
+                    Environment.Exit(0);
+                    break;
                 case 1:
                     MergeFiles();
                     break;
@@ -76,7 +98,7 @@ namespace JeqDB_Converter
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                string? file = Console.ReadLine();
+                var file = Console.ReadLine();
                 if (!string.IsNullOrEmpty(file))
                     files.Add(file.Replace("\"", ""));
                 else if (files.Count < 2)
@@ -88,8 +110,8 @@ namespace JeqDB_Converter
                     break;
             }
 
-            StringBuilder stringBuilder = new();
-            foreach (string file in files)
+            var stringBuilder = new StringBuilder();
+            foreach (var file in files)
             {
                 if (File.Exists(file))
                 {
@@ -131,11 +153,12 @@ namespace JeqDB_Converter
             try
             {
 #if TEST
-                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (n).csv");
+                var datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (n).csv");
 #else
-                string path = Console.ReadLine() ?? "";
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                string[] datas_ = File.ReadAllLines(path.Replace("\"", ""));
+                var path = Console.ReadLine() ?? "";
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
@@ -151,7 +174,7 @@ namespace JeqDB_Converter
                     TextInt = 1
                 };
 #else
-                Config config = new()
+                var config = new Config()
                 {
                     MapSize = (int)UserInput("画像の高さを入力してください。幅は16:9になるように計算されます。例:720/1080/2160/4320", typeof(int), "1080"),
                     LatSta = (double)UserInput("緯度の始点(地図の下端)を入力してください。例:20", typeof(double), "20"),
@@ -163,28 +186,28 @@ namespace JeqDB_Converter
                     "> 12. 11の2倍\n" +
                     "> 13. 11の3倍\n" +
                     "> 21. [マグニチュード強調] マグニチュードxマグニチュードx(画像の高さ÷216)\n" +
-                    "> 22. 21の2倍", typeof(int), "1"),
+                    "> 22. 21の2倍", typeof(int), "11"),
                     TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。", typeof(int), "3")
                 };
 #endif
-                string savePath = $"output\\image\\{DateTime.Now:yyyyMMddHHmmss}.png";
+                var savePath = $"output\\image\\{DateTime.Now:yyyyMMddHHmmss}.png";
                 ConWrite("描画中...");
-                double zoomW = config.MapSize / (config.LonEnd - config.LonSta);
-                double zoomH = config.MapSize / (config.LatEnd - config.LatSta);
-                Bitmap bitmap = DrawMap(config);
-                Graphics g = Graphics.FromImage(bitmap);
+                var zoomW = config.MapSize / (config.LonEnd - config.LonSta);
+                var zoomH = config.MapSize / (config.LatEnd - config.LatSta);
+                var bitmap = DrawMap(config);
+                var g = Graphics.FromImage(bitmap);
 
-                StringBuilder[] text = [new StringBuilder("発生時刻\n"), new StringBuilder("震源\n"), new StringBuilder("深さ\n"), new StringBuilder("規模\n"), new StringBuilder("最大震度\n")];
-                foreach (Data data in datas)
+                StringBuilder[] text = [new StringBuilder("発生時刻\n"), new StringBuilder("震源\n"), new StringBuilder("999km\n深さ　\n"), new StringBuilder("規模\n"), new StringBuilder("最大震度\n")];
+                foreach (var data in datas)
                 {
-                    int size = (int)(Math.Max(1, data.Mag) * config.MapSize / 216);
+                    var size = (int)(Math.Max(1, data.Mag) * config.MapSize / 216);
                     if (config.MagSizeType / 10 == 2)//2x
                         size = (int)(Math.Pow(Math.Max(1, data.Mag), 2) * config.MapSize / 216);
                     if (config.MagSizeType % 10 == 2)//x2
                         size *= 2;
                     else if (config.MagSizeType % 10 == 3)
                         size *= 3;
-                    int alpha = 204;
+                    var alpha = color.Hypo_Alpha;
                     g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
                     g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
                     if (data.MaxInt >= config.TextInt || -data.MaxInt >= config.TextInt)
@@ -198,16 +221,25 @@ namespace JeqDB_Converter
                         text[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
                     }
                 }
-                g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
-                g.DrawString(text[0].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, config.MapSize, 0);
-                g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.25), 0);
-                g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5), 0);
-                g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
-                g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
-                g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
+                var depthSize = g.MeasureString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel));
+                var oneLineHeight = (int)g.MeasureString("999km", new Font(font, config.MapSize / 45, GraphicsUnit.Pixel)).Height;//調整用
+
+                g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
+                var textColor = new SolidBrush(color.Text);
+                g.DrawString(text[0].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, config.MapSize, 0);
+                g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.25), 0);
+                g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, new RectangleF(new Point((int)(config.MapSize * 1.5), -oneLineHeight), depthSize), string_Right);
+                g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.5875), 0);
+                g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.675), 0);
+                g.DrawLine(new Pen(color.Text, config.MapSize / 1080f), config.MapSize, config.MapSize * 36 / 1080, bitmap.Width, config.MapSize * 36 / 1080);
+                var mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
+                g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), new SolidBrush(color.Text), config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
                 Directory.CreateDirectory("output\\image");
                 bitmap.Save(savePath, ImageFormat.Png);
-                ConWrite($"{Path.GetFullPath(savePath)} : {datas.Count()}", ConsoleColor.Green);
+#if TEST
+                ConWrite(Path.GetFullPath(savePath), ConsoleColor.Green);
+#endif
+                ConWrite($"{savePath} : {datas.Count()}", ConsoleColor.Green);
                 g.Dispose();
                 bitmap.Dispose();
             }
@@ -223,22 +255,24 @@ namespace JeqDB_Converter
         [SupportedOSPlatform("windows")]//CA1416回避
         public static void ReadyVideo()
         {
+            // 36.4 -  38.4
+            //136.2 - 138.2
 #if !TEST
             ConWrite("読み込むcsvファイルのパスを入力してください。");
 #endif
             try
             {
 #if TEST
-                string[] datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (y).csv");
+                var datas_ = File.ReadAllLines("C:\\Users\\proje\\Downloads\\地震リスト (y).csv");
 #else
-                string path = Console.ReadLine() ?? "";
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                string[] datas_ = File.ReadAllLines(path.Replace("\"", ""));
+                var path = Console.ReadLine() ?? "";
+                var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 #if TEST
-                Config config = new()
+                var config = new Config()
                 {
                     StartTime = new DateTime(2023, 1, 1),
                     EndTime = new DateTime(2024, 1, 1),
@@ -253,7 +287,7 @@ namespace JeqDB_Converter
                     TextInt = 3
                 };
 #else
-                Config config = new()
+                var config = new Config()
                 {
                     StartTime = (DateTime)UserInput("開始時刻を入力してください。例(2023年1月1日):2023/01/01 00:00:00", typeof(DateTime)),
                     EndTime = (DateTime)UserInput("終了時刻を入力してください。この時間未満まで描画されます。例(2024年1月1日):2024/01/01 00:00:00", typeof(DateTime)),
@@ -269,41 +303,41 @@ namespace JeqDB_Converter
                     "> 12. 11の2倍\n" +
                     "> 13. 11の3倍\n" +
                     "> 21. [マグニチュード強調] マグニチュードxマグニチュードx(画像の高さ÷216)\n" +
-                    "> 22. 21の2倍", typeof(int), "1"),
+                    "> 22. 21の2倍", typeof(int), "11"),
                     TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。", typeof(int), "3")
                 };
 #endif
                 ConWrite("描画中...");
-                string saveDir = $"output\\videoimage\\{DateTime.Now:yyyyMMddHHmmss}";
+                var saveDir = $"output\\videoimage\\{DateTime.Now:yyyyMMddHHmmss}";
                 Directory.CreateDirectory(saveDir);
 
-                double ZoomW = config.MapSize / (config.LonEnd - config.LonSta);
-                double ZoomH = config.MapSize / (config.LatEnd - config.LatSta);
-                Bitmap baseMap = DrawMap(config);
+                var zoomW = config.MapSize / (config.LonEnd - config.LonSta);
+                var zoomH = config.MapSize / (config.LatEnd - config.LatSta);
+                var baseMap = DrawMap(config);
 
-                DateTime DrawTime = config.StartTime;//描画対象時間
-                for (int i = 1; DrawTime < config.EndTime; i++)//DateTime:古<新==true
+                var drawTime = config.StartTime;//描画対象時間
+                for (var i = 1; drawTime < config.EndTime; i++)//DateTime:古<新==true
                 {
-                    datas = datas.SkipWhile(data => data.Time < DrawTime - config.DisappTime).ToList();//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
-                    IEnumerable<Data> datas_Draw = datas.Where(data => data.Time < DrawTime + config.DrawSpan);//抜き出し
+                    datas = datas.SkipWhile(data => data.Time < drawTime - config.DisappTime).ToList();//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
+                    var datas_Draw = datas.Where(data => data.Time < drawTime + config.DrawSpan);//抜き出し
 
-                    Bitmap bitmap = (Bitmap)baseMap.Clone();
-                    Graphics g = Graphics.FromImage(bitmap);
-                    StringBuilder[] text = [new StringBuilder("発生時刻\n"), new StringBuilder("震源\n"), new StringBuilder("深さ\n"), new StringBuilder("規模\n"), new StringBuilder("最大震度\n")];
-                    foreach (Data data in datas_Draw)
+                    var bitmap = (Bitmap)baseMap.Clone();
+                    var g = Graphics.FromImage(bitmap);
+                    StringBuilder[] text = [new StringBuilder("発生時刻\n"), new StringBuilder("震源\n"), new StringBuilder("999km\n深さ　\n"), new StringBuilder("規模\n"), new StringBuilder("最大震度\n")];
+                    foreach (var data in datas_Draw)
                     {
-                        int size = (int)(Math.Max(1, data.Mag) * config.MapSize / 216);
+                        var size = (int)(Math.Max(1, data.Mag) * config.MapSize / 216);
                         if (config.MagSizeType / 10 == 2)//2x
                             size = (int)(Math.Pow(Math.Max(1, data.Mag), 2) * config.MapSize / 216);
                         if (config.MagSizeType % 10 == 2)//x2
                             size *= 2;
                         else if (config.MagSizeType % 10 == 3)
                             size *= 3;
-                        int alpha = 204;
-                        if (data.Time < DrawTime)//描画時間より前
-                            alpha = (int)((1d - (DrawTime - data.Time).TotalSeconds / config.DisappTime.TotalSeconds) * alpha);//消える時間の割合*基本透明度
-                        g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * ZoomW) - size / 2, (int)((config.LatEnd - data.Lat) * ZoomH) - size / 2, size, size);
-                        g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * ZoomW) - size / 2, (int)((config.LatEnd - data.Lat) * ZoomH) - size / 2, size, size);
+                        var alpha = color.Hypo_Alpha;
+                        if (data.Time < drawTime)//描画時間より前
+                            alpha = (int)((1d - (drawTime - data.Time).TotalSeconds / config.DisappTime.TotalSeconds) * alpha);//消える時間の割合*基本透明度
+                        g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
+                        g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
                         if (data.MaxInt >= config.TextInt)
                         {
                             text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
@@ -315,20 +349,26 @@ namespace JeqDB_Converter
                             text[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
                         }
                     }
-                    g.FillRectangle(new SolidBrush(Color.FromArgb(30, 60, 90)), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
-                    g.DrawString(DrawTime.ToString("yyyy/MM/dd HH:mm:ss"), new Font(font, config.MapSize / 24, GraphicsUnit.Pixel), Brushes.White, 0, 0);
-                    g.DrawString(text[0].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, config.MapSize, 0);
-                    g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.25), 0);
-                    g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5), 0);
-                    g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.5875), 0);
-                    g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), Brushes.White, (int)(config.MapSize * 1.675), 0);
-                    g.DrawLine(new Pen(Color.White, config.MapSize / 1024), config.MapSize, config.MapSize * 36 / 1024, bitmap.Width, config.MapSize * 36 / 1024);
-                    string savePath = $"{saveDir}\\{i:d4}.png";
+                    var depthSize = g.MeasureString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel));
+                    var oneLineHeight = (int)g.MeasureString("999km", new Font(font, config.MapSize / 45, GraphicsUnit.Pixel)).Height;//調整用
+
+                    g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
+                    var textColor = new SolidBrush(color.Text);
+                    g.DrawString(drawTime.ToString("yyyy/MM/dd HH:mm:ss"), new Font(font, config.MapSize / 24, GraphicsUnit.Pixel), Brushes.White, 0, 0);
+                    g.DrawString(text[0].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, config.MapSize, 0);
+                    g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.25), 0);
+                    g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, new RectangleF(new Point((int)(config.MapSize * 1.5), -oneLineHeight), depthSize), string_Right);
+                    g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.5875), 0);
+                    g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.675), 0);
+                    g.DrawLine(new Pen(Color.White, config.MapSize / 1080f), config.MapSize, config.MapSize * 36 / 1080, bitmap.Width, config.MapSize * 36 / 1080);
+                    var mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
+                    g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), new SolidBrush(color.Text), config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
+                    var savePath = $"{saveDir}\\{i:d4}.png";
                     bitmap.Save(savePath, ImageFormat.Png);
                     g.Dispose();
                     bitmap.Dispose();
-                    ConWrite($"{DrawTime:yyyy/MM/dd HH:mm:ss} {i:d4}.png : {datas_Draw.Count()}", ConsoleColor.Green);
-                    DrawTime += config.DrawSpan;
+                    ConWrite($"{drawTime:yyyy/MM/dd HH:mm:ss} {i:d4}.png : {datas_Draw.Count()}", ConsoleColor.Green);
+                    drawTime += config.DrawSpan;
                 }
                 ConWrite($"画像出力完了\n動画化(30fps)(画像ファイルがあるフォルダで): ffmpeg -framerate 30 -i %04d.png -vcodec libx264 -pix_fmt yuv420p -r 30 _output.mp4");
             }
@@ -343,55 +383,50 @@ namespace JeqDB_Converter
         {
 #pragma warning disable CS8602 // null 参照の可能性があるものの逆参照です。
 #pragma warning disable CS8604 // Null 参照引数の可能性があります。
-            Bitmap mapImg = new(config.MapSize * 16 / 9, config.MapSize);
-            double ZoomW = config.MapSize / (config.LonEnd - config.LonSta);
-            double ZoomH = config.MapSize / (config.LatEnd - config.LatSta);
-            JObject json = JObject.Parse(File.ReadAllText("map-world.geojson"));
-            Graphics g = Graphics.FromImage(mapImg);
-            g.Clear(Color.FromArgb(30, 30, 60));
-            GraphicsPath Maps = new();
-            Maps.StartFigure();
-            foreach (JToken json_1 in json.SelectToken("features"))
+            color = JsonConvert.DeserializeObject<Config_Color>(File.ReadAllText("colors.json")) ?? new Config_Color();
+            var mapImg = new Bitmap(config.MapSize * 16 / 9, config.MapSize);
+            var zoomW = config.MapSize / (config.LonEnd - config.LonSta);
+            var zoomH = config.MapSize / (config.LatEnd - config.LatSta);
+            var json = JObject.Parse(File.ReadAllText("map-world.geojson"));
+            var g = Graphics.FromImage(mapImg);
+            g.Clear(color.Map.Sea);
+            var maps = new GraphicsPath();
+            maps.StartFigure();
+            foreach (var json_1 in json.SelectToken("features"))
             {
                 if (!json_1.SelectToken("geometry").Any())
                     continue;
-                List<Point> points = [];
-                foreach (JToken json_2 in json_1.SelectToken("geometry.coordinates[0]"))
-                    points.Add(new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * ZoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * ZoomH)));
-                if (points.Count > 2)
-                    Maps.AddPolygon(points.ToArray());
+                var points = json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))).ToArray();
+                if (points.Length > 2)
+                    maps.AddPolygon(points);
             }
-            g.FillPath(new SolidBrush(Color.FromArgb(100, 100, 150)), Maps);
+            g.FillPath(new SolidBrush(color.Map.World), maps);
 
             json = JObject.Parse(File.ReadAllText("map-jp.geojson"));
-            Maps.Reset();
-            Maps.StartFigure();
-            foreach (JToken json_1 in json.SelectToken("features"))
+            maps.Reset();
+            maps.StartFigure();
+            foreach (var json_1 in json.SelectToken("features"))
             {
                 if ((string?)json_1.SelectToken("geometry.type") == "Polygon")
                 {
-                    List<Point> points = [];
-                    foreach (JToken json_2 in json_1.SelectToken("geometry.coordinates[0]"))
-                        points.Add(new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * ZoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * ZoomH)));
-                    if (points.Count > 2)
-                        Maps.AddPolygon(points.ToArray());
+                    var points = json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))).ToArray();
+                    if (points.Length > 2)
+                        maps.AddPolygon(points);
                 }
                 else
                 {
-                    foreach (JToken json_2 in json_1.SelectToken("geometry.coordinates"))
+                    foreach (var json_2 in json_1.SelectToken("geometry.coordinates"))
                     {
-                        List<Point> points = [];
-                        foreach (JToken json_3 in json_2.SelectToken("[0]"))
-                            points.Add(new Point((int)(((double)json_3.SelectToken("[0]") - config.LonSta) * ZoomW), (int)((config.LatEnd - (double)json_3.SelectToken("[1]")) * ZoomH)));
-                        if (points.Count > 2)
-                            Maps.AddPolygon(points.ToArray());
+                        var points = json_2.SelectToken("[0]").Select(json_3 => new Point((int)(((double)json_3.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_3.SelectToken("[1]")) * zoomH))).ToArray();
+                        if (points.Length > 2)
+                            maps.AddPolygon(points);
                     }
                 }
             }
-            g.FillPath(new SolidBrush(Color.FromArgb(90, 90, 120)), Maps);
-            g.DrawPath(new Pen(Color.FromArgb(127, 255, 255, 255), (int)(config.MapSize / 1080d)), Maps);
-            SizeF mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
-            g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), Brushes.White, config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
+            g.FillPath(new SolidBrush(color.Map.Japan), maps);
+            g.DrawPath(new Pen(color.Map.Japan_Border, config.MapSize / 1080f), maps);
+            var mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
+            g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), new SolidBrush(color.Text), config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
             g.Dispose();
             return mapImg;
 #pragma warning restore CS8602 // null 参照の可能性があるものの逆参照です。
@@ -409,38 +444,38 @@ namespace JeqDB_Converter
             {
                 ConWrite("一度に取得できる数は1000までとなるので注意してください。");
 #if TEST
-                DateTime startTime = DateTime.Parse("2023/01/01 00:00");
-                DateTime endTime = DateTime.Parse("2023/01/01 23:59");
-                double minMag = 0;
-                double maxMag = 9.9;
-                int minDepth = 0;
-                int maxDepth = 999;
-                string minMaxInt = "1";
+                var startTime = DateTime.Parse("2023/01/01 00:00");
+                var endTime = DateTime.Parse("2023/01/01 23:59");
+                var minMag = 0d;
+                var maxMag = 9.9;
+                var minDepth = 0;
+                var maxDepth = 999;
+                var minMaxInt = "1";
 #else
-                DateTime startTime = (DateTime)UserInput("開始日時を入力してください。例:2023/01/01 00:00", typeof(DateTime));
-                DateTime endTime = (DateTime)UserInput("終了日時を入力してください。例:2023/01/31 23:59", typeof(DateTime));
-                double minMag = (double)UserInput("最小マグニチュードを入力してください。例:0", typeof(double), "0");
-                double maxMag = (double)UserInput("最大マグニチュードを入力してください。例:9.9", typeof(double), "9.9");
-                int minDepth = (int)UserInput("最小深さを入力してください。例:0", typeof(int), "0");
-                int maxDepth = (int)UserInput("最大深さを入力してください。例:999", typeof(int), "999");
-                string minMaxInt = (string)UserInput("最大震度x以上 xを入力してください。ただし5弱:A,5強:B,6弱:C,6強:Dです。例:1", typeof(string), "1");
+                var startTime = (DateTime)UserInput("開始日時を入力してください。例:2023/01/01 00:00", typeof(DateTime));
+                var endTime = (DateTime)UserInput("終了日時を入力してください。例:2023/01/31 23:59", typeof(DateTime));
+                var minMag = (double)UserInput("最小マグニチュードを入力してください。例:0", typeof(double), "0");
+                var maxMag = (double)UserInput("最大マグニチュードを入力してください。例:9.9", typeof(double), "9.9");
+                var minDepth = (int)UserInput("最小深さを入力してください。例:0", typeof(int), "0");
+                var maxDepth = (int)UserInput("最大深さを入力してください。例:999", typeof(int), "999");
+                var minMaxInt = (string)UserInput("最大震度x以上 xを入力してください。ただし5弱:A,5強:B,6弱:C,6強:Dです。例:1", typeof(string), "1");
 #endif
-                string savePath = $"output\\csv\\{startTime:yyyyMMddHHmm}-{endTime:yyyyMMddHHmm}.csv";
+                var savePath = $"output\\csv\\{startTime:yyyyMMddHHmm}-{endTime:yyyyMMddHHmm}.csv";
                 ConWrite("取得中...");
-                string response = Regex.Unescape(client.GetStringAsync($"https://www.data.jma.go.jp/svd/eqdb/data/shindo/api/api.php?mode=search&dateTimeF[]={startTime:yyyy-MM-dd}&dateTimeF[]={startTime:HH:mm}&dateTimeT[]={endTime:yyyy-MM-dd}&dateTimeT[]={endTime:HH:mm}&mag[]={minMag:0.0}&mag[]={maxMag:0.0}&dep[]={minDepth:000}&dep[]={maxDepth:000}&epi[]=99&pref[]=99&city[]=99&station[]=99&obsInt=1&maxInt={minMaxInt}&additionalC=true&Sort=S0&Comp=C0&seisCount=false&observed=false").Result);
-                JObject json = JObject.Parse(response);
+                var response = Regex.Unescape(client.GetStringAsync($"https://www.data.jma.go.jp/svd/eqdb/data/shindo/api/api.php?mode=search&dateTimeF[]={startTime:yyyy-MM-dd}&dateTimeF[]={startTime:HH:mm}&dateTimeT[]={endTime:yyyy-MM-dd}&dateTimeT[]={endTime:HH:mm}&mag[]={minMag:0.0}&mag[]={maxMag:0.0}&dep[]={minDepth:000}&dep[]={maxDepth:000}&epi[]=99&pref[]=99&city[]=99&station[]=99&obsInt=1&maxInt={minMaxInt}&additionalC=true&Sort=S0&Comp=C0&seisCount=false&observed=false").Result);
+                var json = JObject.Parse(response);
                 ConWrite($"データ個数 : {json.SelectToken("res")?.Count()}", ConsoleColor.Green);
 
-                JToken? str = json.SelectToken("str");
+                var str = json.SelectToken("str");
                 if (str != null)
-                    foreach (JToken data in str)
+                    foreach (var data in str)
                         ConWrite((string?)data, ConsoleColor.Green);
                 ConWrite("変換中...");
-                StringBuilder csv = new("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+                var csv = new StringBuilder("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
 
-                JToken? res = json.SelectToken("res");
+                var res = json.SelectToken("res");
                 if (res != null)
-                    foreach (JToken data in res)
+                    foreach (var data in res)
                     {
                         var ot = (string?)data.SelectToken("ot");
                         if (ot == null)
@@ -486,7 +521,7 @@ namespace JeqDB_Converter
                 {
                     ConWrite(message);
                     Console.ForegroundColor = ConsoleColor.Cyan;
-                    string? input = Console.ReadLine();
+                    var input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input))
                     {
                         if (string.IsNullOrEmpty(nullText))
