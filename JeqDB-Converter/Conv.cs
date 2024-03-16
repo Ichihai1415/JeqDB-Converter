@@ -267,4 +267,61 @@ namespace JeqDB_Converter
         /// </summary>
         public TimeSpan DisappTime { get; set; }
     }
+
+    /// <summary>
+    /// 描画色の設定
+    /// </summary>
+    public class Config_Color
+    {
+        /// <summary>
+        /// 地図の色
+        /// </summary>
+        public MapColor Map { get; set; } = new MapColor();
+
+        /// <summary>
+        /// 地図の色
+        /// </summary>
+        public class MapColor
+        {
+            /// <summary>
+            /// 海洋の塗りつぶし色
+            /// </summary>
+            public Color Sea { get; set; } = Color.FromArgb(30, 30, 60);
+
+            /// <summary>
+            /// 世界(日本除く)の塗りつぶし色
+            /// </summary>
+            public Color World { get; set; } = Color.FromArgb(100, 100, 150);
+            /*
+            /// <summary>
+            /// 世界(日本除く)の境界線色
+            /// </summary>
+            public Color World_Border { get; set; }
+            */
+            /// <summary>
+            /// 日本の塗りつぶし色
+            /// </summary>
+            public Color Japan { get; set; } = Color.FromArgb(90, 90, 120);
+
+            /// <summary>
+            /// 日本の境界線色
+            /// </summary>
+            public Color Japan_Border { get; set; } = Color.FromArgb(127, 255, 255, 255);
+        }
+
+        /// <summary>
+        /// 右側部分背景色
+        /// </summary>
+        public Color InfoBack { get; set; } = Color.FromArgb(30, 60, 90);
+
+        /// <summary>
+        /// 右側部分等テキスト色
+        /// </summary>
+        public Color Text { get; set; } = Color.FromArgb(255, 255, 255);
+
+        /// <summary>
+        /// 震央円の透明度
+        /// </summary>
+        public int Hypo_Alpha { get; set; } = 204;
+    }
 }
