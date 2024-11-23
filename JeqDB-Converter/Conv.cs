@@ -29,14 +29,50 @@ namespace JeqDB_Converter
         }
 
         /// <summary>
+        /// 震源リスト1行のデータをData形式にします。
+        /// </summary>
+        /// <param name="text">csv1行</param>
+        /// <returns>Data形式のデータ</returns>
+        public static Data HypoText2Data(string text)
+        {
+            //0    1  2  3     4     5         6              7      8    9
+            //2024 11 22 00:28 56.7  41° 1.5'N 141° 3.6'E   13     0.2  陸奥湾                   //33°18.2'N 135°27.9'E
+            var datas = text.Replace("° ", "°").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return new Data
+            {
+                Time = DateTime.Parse($"{datas[0]}/{datas[1]}/{datas[2]} {datas[3]}:{datas[4]}"),
+                Hypo = datas[9],
+                Lat = LatLonString2Double(datas[5]),
+                Lon = LatLonString2Double(datas[6]),
+                Depth = int.Parse(datas[7]),
+                Mag = double.Parse(datas[8].Replace("-", "-1")),
+                MaxInt = -1
+            };
+        }
+
+        /// <summary>
         /// 緯度や経度を60進数表記からdoubleに変換します。
         /// </summary>
         /// <param name="ll">緯度や経度</param>
         /// <returns>doubleの経度</returns>
         public static double LatLonString2Double(string ll)
         {
-            string[] lls = ll.Split(['°', '′']);
+            string[] lls = ll.Replace("N", "").Replace("E", "").Replace("'", "").Split(['°', '′']);
             return double.Parse(lls[0]) + double.Parse(lls[1]) / 60d;
+        }
+
+
+        /// <summary>
+        /// 緯度や経度を60進数表記からdoubleに変換します。
+        /// </summary>
+        /// <param name="ll">緯度や経度</param>
+        /// <param name="isLat">緯度か</param>
+        /// <returns>doubleの経度</returns>
+        public static string LatLonDouble2String(double ll, bool isLat)
+        {//37°12.6′N
+            var d = (int)ll;
+            var m = (ll - d) * 60;
+            return $"{d}°{Math.Round(m, MidpointRounding.AwayFromZero):F1}′" + (isLat ? "N" : "E");
         }
 
         /// <summary>
@@ -49,6 +85,8 @@ namespace JeqDB_Converter
         {
             return maxInt switch
             {
+                "---" => -1,
+                "震度０" => 0,
                 "震度１" => 1,
                 "震度２" => 2,
                 "震度３" => 3,
@@ -75,6 +113,8 @@ namespace JeqDB_Converter
         {
             return maxInt switch
             {
+                -1 => hankaku ? "---" : "---",
+                0 => hankaku ? "震度0" : "震度０",
                 1 => hankaku ? "震度1" : "震度１",
                 2 => hankaku ? "震度2" : "震度２",
                 3 => hankaku ? "震度3" : "震度３",
@@ -195,7 +235,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// マグニチュード
         /// </summary>
-        public double Mag { get; set; }
+        public double Mag { get; set; }//不明を-1にしてるけど震源一覧でMマイナスあるからだめかも
 
         /// <summary>
         /// 最大震度
