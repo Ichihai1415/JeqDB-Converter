@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using AngleSharp.Html.Parser;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -51,6 +52,7 @@ namespace JeqDB_Converter
             ConWrite("> 2.画像描画");
             ConWrite("> 3.動画作成");
             ConWrite("> 4.csv取得");
+            ConWrite("> 5.震源リスト取得");
             ConWrite("> 0.終了");
             int mode;
             while (true)
@@ -58,12 +60,12 @@ namespace JeqDB_Converter
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 var select = Console.ReadLine();
                 if (int.TryParse(select, null, out int selectNum))
-                    if (0 <= selectNum && selectNum <= 4)
+                    if (0 <= selectNum && selectNum <= 5)
                     {
                         mode = selectNum;
                         break;
                     }
-                ConWrite("値は0から4の間である必要があります。", ConsoleColor.Red);
+                ConWrite("値は0から5の間である必要があります。", ConsoleColor.Red);
             }
             switch (mode)
             {
@@ -82,6 +84,9 @@ namespace JeqDB_Converter
                     break;
                 case 4:
                     GetCsv();
+                    break;
+                case 5:
+                    GetHypo();
                     break;
             }
             Console.WriteLine();
@@ -472,7 +477,6 @@ namespace JeqDB_Converter
                         ConWrite((string?)data, ConsoleColor.Green);
                 ConWrite("変換中...");
                 var csv = new StringBuilder("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
-
                 var res = json.SelectToken("res");
                 if (res != null)
                     foreach (var data in res)
@@ -503,6 +507,63 @@ namespace JeqDB_Converter
             catch (Exception ex)
             {
                 ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。", ConsoleColor.Red);
+            }
+        }
+
+        public static readonly HtmlParser parser = new();
+
+        /// <summary>
+        /// 震源リスト(無感含む)を震度データベース互換に変換
+        /// </summary>
+        /// <remarks>震度は---になります</remarks>
+        public static void GetHypo()
+        {
+            try
+            {
+                ConWrite("無感含む、2023年04月01日以降の震源リスト(https://www.data.jma.go.jp/eqev/data/daily_map/index.html)を震度データベース互換に変換します。保存後に複数ファイルの結合をすることで震度データベースのものと一緒に描画できます(同一地震判定はしません)。");
+                var url = (string)UserInput("取得するURLを入力してください。形式:https://www.data.jma.go.jp/eqev/data/daily_map/yyyyMMdd.html", typeof(string));
+                ConWrite("取得中...");
+                var response = client.GetStringAsync(url).Result;
+                ConWrite("解析中...");
+                var document = parser.ParseDocument(response);
+                var pre = document.QuerySelector("pre")!.TextContent;
+                var lines = pre.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(2);
+                var datas = lines.Select(HypoText2Data);
+                ConWrite($"データ個数 : {datas.Count()}", ConsoleColor.Green);
+
+                var csv = new StringBuilder("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+                var savePath = "output\\csv\\hypo\\" + url.Split('/').Last().Replace(".html", ".csv");
+
+                foreach (var data in datas)
+                {
+                    //2024/01/03,20:07:02.4,能登半島沖,37°12.6′N,136°40.9′E,8 km,2.9,震度１
+                    csv.Append(data.Time.ToString("yyyy/MM/dd"));
+                    csv.Append(',');
+                    csv.Append(data.Time.ToString("HH:mm:ss.f"));
+                    csv.Append(',');
+                    csv.Append(data.Hypo);
+                    csv.Append(',');
+                    csv.Append(LatLonDouble2String(data.Lat,true));
+                    csv.Append(',');
+                    csv.Append(LatLonDouble2String(data.Lon, false));
+                    csv.Append(',');
+                    csv.Append(data.Depth);
+                    csv.Append(" km,");
+                    csv.Append(data.Mag);
+                    csv.Append(",---");
+                    csv.AppendLine();
+                }
+
+                Directory.CreateDirectory("output");
+                Directory.CreateDirectory("output\\csv");
+                Directory.CreateDirectory("output\\csv\\hypo");
+                File.WriteAllText(savePath, csv.ToString());
+                ConWrite(savePath, ConsoleColor.Green);
+                ConWrite("保存しました。");
+            }
+            catch (Exception ex)
+            {
+                ConWrite("エラーが発生しました。" + ex + "再度実行してください。", ConsoleColor.Red);
             }
         }
 
