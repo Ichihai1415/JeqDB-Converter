@@ -215,7 +215,7 @@ namespace JeqDB_Converter
                     var alpha = color.Hypo_Alpha;
                     g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
                     g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
-                    if (data.MaxInt >= config.TextInt || -data.MaxInt >= config.TextInt)
+                    if (Math.Abs(data.MaxInt) >= config.TextInt)
                     {
                         text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                         text[1].AppendLine(data.Hypo);//詳細不明の可能性
@@ -343,7 +343,7 @@ namespace JeqDB_Converter
                             alpha = (int)((1d - (drawTime - data.Time).TotalSeconds / config.DisappTime.TotalSeconds) * alpha);//消える時間の割合*基本透明度
                         g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
                         g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
-                        if (data.MaxInt >= config.TextInt)
+                        if (Math.Abs(data.MaxInt) >= config.TextInt)
                         {
                             text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                             text[1].AppendLine(data.Hypo);
