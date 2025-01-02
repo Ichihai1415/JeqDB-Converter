@@ -166,7 +166,7 @@ namespace JeqDB_Converter
                 var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
-                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
+                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x=>!x.Contains("不明データ")).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 #if TEST
                 Config config = new()
                 {
@@ -218,7 +218,7 @@ namespace JeqDB_Converter
                     if (data.MaxInt >= config.TextInt || -data.MaxInt >= config.TextInt)
                     {
                         text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
-                        text[1].AppendLine(data.Hypo);
+                        text[1].AppendLine(data.Hypo);//詳細不明の可能性
                         text[2].Append(data.Depth == -1 ? "不明" : data.Depth.ToString());
                         text[2].AppendLine(data.Depth == -1 ? "" : "km");
                         text[3].Append(data.Mag == -1d ? "不明" : 'M');
@@ -275,7 +275,7 @@ namespace JeqDB_Converter
                 var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
-                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
+                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x => !x.Contains("不明データ")).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 #if TEST
                 var config = new Config()
                 {

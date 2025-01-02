@@ -22,7 +22,7 @@ namespace JeqDB_Converter
                 Hypo = datas[2],
                 Lat = LatLonString2Double(datas[3]),
                 Lon = LatLonString2Double(datas[4]),
-                Depth = int.Parse(datas[5].Replace(" km", "").Replace("不明", "-1")),
+                Depth = (datas[2].StartsWith("詳細不明") && datas[5] == "0 km") ? -1 : int.Parse(datas[5].Replace(" km", "").Replace("不明", "-1")),//詳細不明震源で0kmの場合不明に
                 Mag = double.Parse(datas[6].Replace("不明", "-1")),
                 MaxInt = MaxIntString2Int(datas[7])
             };
