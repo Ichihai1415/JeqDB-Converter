@@ -98,7 +98,7 @@ namespace JeqDB_Converter
         /// </summary>
         public static void MergeFiles()
         {
-            ConWrite("結合するファイルのパスを1行ごとに入力してください。空文字が入力されたら結合を開始します。※観測震度検索をしているものとしていないものの結合はできますが他ソフトで処理をする際エラーとなる可能性があります。このソフトでは問題ありません。");
+            ConWrite("結合するファイルのパスを1行ごとに入力してください。空文字が入力されたら結合を開始します。フォルダのパスを入力するとすべて読み込みます。※観測震度検索をしているものとしていないものの結合はできますが他ソフトで処理をする際エラーとなる可能性があります。このソフトでは問題ありません。");
             List<string> files = [];
             while (true)
             {
@@ -122,7 +122,7 @@ namespace JeqDB_Converter
                 {
                     ConWrite("読み込み中... ", false);
                     ConWrite(file, ConsoleColor.Green);
-                    stringBuilder.Append(File.ReadAllText(file).Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", ""));
+                    stringBuilder.Append(File.ReadAllText(file).Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
                 }
                 else
                     ConWrite($"{file}が見つかりません。", ConsoleColor.Red);
@@ -147,6 +147,63 @@ namespace JeqDB_Converter
         }
 
         /// <summary>
+        /// ファイルを結合します。
+        /// </summary>
+        public static string MergeFiles(string[] files)
+        {
+            if (files.Length == 0)
+            {
+                ConWrite("結合するファイルのパスを1行ごとに入力してください。空文字が入力されたら結合を開始します。フォルダのパスを入力するとすべて読み込みます。※観測震度検索をしているものとしていないものの結合はできますが他ソフトで処理をする際エラーとなる可能性があります。このソフトでは問題ありません。");
+                List<string> filesTmp = [];
+                while (true)
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    var file = Console.ReadLine();
+                    if (!string.IsNullOrEmpty(file))
+                        filesTmp.Add(file.Replace("\"", ""));
+                    else if (filesTmp.Count < 2)
+                    {
+                        ConWrite("中止します。");
+                        return "";
+                    }
+                    else
+                        break;
+                }
+                files = [.. filesTmp];
+            }
+
+            var stringBuilder = new StringBuilder();
+            List<string> files2 = [];
+            foreach (var file in files)
+            {
+                var f = file.Replace("\"", "");
+                if (f.EndsWith(".csv"))
+                    files2.Add(f);
+                else
+                {
+                    ConWrite("ファイル名取得中... ", false);
+                    ConWrite(f, ConsoleColor.Green);
+                    var openPaths = Directory.EnumerateFiles(f, "*.csv", SearchOption.AllDirectories);
+                    foreach (var path in openPaths)
+                        files2.Add(path);
+                }
+            }
+            foreach (var file in files2)
+            {
+                if (File.Exists(file))
+                {
+                    ConWrite("読み込み中... ", false);
+                    ConWrite(file, ConsoleColor.Green);
+                    stringBuilder.Append(File.ReadAllText(file).Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
+                }
+                else
+                    ConWrite($"{file}が見つかりません。", ConsoleColor.Red);
+            }
+            stringBuilder.Insert(0, "地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+            return stringBuilder.ToString();
+        }
+
+        /// <summary>
         /// 画像を描画します。
         /// </summary>
         [SupportedOSPlatform("windows")]//CA1416回避
@@ -166,7 +223,7 @@ namespace JeqDB_Converter
                 var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
-                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x=>!x.Contains("不明データ")).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
+                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x => !x.Contains("不明データ")).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 #if TEST
                 Config config = new()
                 {
@@ -263,7 +320,7 @@ namespace JeqDB_Converter
             // 36.4 -  38.4
             //136.2 - 138.2
 #if !TEST
-            ConWrite("読み込むcsvファイルのパスを入力してください。");
+            ConWrite("読み込むcsvファイルのパスを入力してください。複数読み込む場合は\\だけ入力してください。");
 #endif
             try
             {
@@ -272,7 +329,8 @@ namespace JeqDB_Converter
 #else
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 var path = Console.ReadLine() ?? "";
-                var datas_ = File.ReadAllLines(path.Replace("\"", ""));
+
+                var datas_ = path == "\\" ? MergeFiles([]).Replace("\r","").Split('\n') : File.ReadAllLines(path.Replace("\"", ""));//gitで触ると\r付く
 #endif
                 ConWrite("変換中...");
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x => !x.Contains("不明データ")).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
@@ -543,7 +601,7 @@ namespace JeqDB_Converter
                     csv.Append(',');
                     csv.Append(data.Hypo);
                     csv.Append(',');
-                    csv.Append(LatLonDouble2String(data.Lat,true));
+                    csv.Append(LatLonDouble2String(data.Lat, true));
                     csv.Append(',');
                     csv.Append(LatLonDouble2String(data.Lon, false));
                     csv.Append(',');

@@ -85,6 +85,7 @@ namespace JeqDB_Converter
         {
             return maxInt switch
             {
+                null => -1,
                 "---" => -1,
                 "震度０" => 0,
                 "震度１" => 1,
