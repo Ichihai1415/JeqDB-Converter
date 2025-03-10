@@ -363,6 +363,6 @@ namespace JeqDB_Converter
         /// <summary>
         /// 震央円の透明度
         /// </summary>
-        public int Hypo_Alpha { get; set; } = 204;
+        public int Hypo_Alpha { get; set; } = 153;//公式の変更より204から変更
     }
 }
