@@ -344,7 +344,7 @@ namespace JeqDB_Converter
                         var yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
 
                         g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9f * 7f + 1f, magMaxSize + 20f * config.MapSize * sizeX + 1f);//一応+1
-                        g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase, config.MapSize * 1261f / 720f, yBase);
+                        g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 216f, config.MapSize * 1261f / 720f, yBase + config.MapSize / 216f);
 
                         for (int m = 1; m <= 8; m++)
                         {
@@ -370,7 +370,7 @@ namespace JeqDB_Converter
                         yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
 
                         g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9 * 7 + 1, magMaxSize + 20 * config.MapSize * sizeX + 1);//一応+1
-                        g.DrawLine(new Pen(Color.FromArgb(127, color.Text), config.MapSize / 1080f), xBase + config.MapSize / 80f, yBase, config.MapSize * 1263 / 720f, yBase);
+                        g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 108f, config.MapSize * 1263 / 720f, yBase + config.MapSize / 108f);
 
                         for (int m = 1; m <= 7; m++)
                         {
