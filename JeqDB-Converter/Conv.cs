@@ -22,7 +22,7 @@ namespace JeqDB_Converter
                 Hypo = datas[2],
                 Lat = LatLonString2Double(datas[3]),
                 Lon = LatLonString2Double(datas[4]),
-                Depth = int.Parse(datas[5].Replace(" km", "").Replace("不明", "-1")),
+                Depth = (datas[2].StartsWith("詳細不明") && datas[5] == "0 km") ? -1 : int.Parse(datas[5].Replace(" km", "").Replace("不明", "-1")),//詳細不明震源で0kmの場合不明に
                 Mag = double.Parse(datas[6].Replace("不明", "-1")),
                 MaxInt = MaxIntString2Int(datas[7])
             };
@@ -85,6 +85,7 @@ namespace JeqDB_Converter
         {
             return maxInt switch
             {
+                null => -1,
                 "---" => -1,
                 "震度０" => 0,
                 "震度１" => 1,
@@ -235,7 +236,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// マグニチュード
         /// </summary>
-        public double Mag { get; set; }//不明を-1にしてるけど震源一覧でMマイナスあるからだめかも
+        public double Mag { get; set; }//todo:不明を-1にしてるけど震源一覧でMマイナスあるからだめかも
 
         /// <summary>
         /// 最大震度
@@ -286,6 +287,11 @@ namespace JeqDB_Converter
         /// テキスト表示最小震度
         /// </summary>
         public int TextInt { get; set; } = 3;
+
+        /// <summary>
+        /// マグニチュード・深さ凡例
+        /// </summary>
+        public bool EnableLegend { get; set; } = true;
 
         /// <summary>
         /// [動画のみ]描画開始日時
@@ -362,6 +368,11 @@ namespace JeqDB_Converter
         /// <summary>
         /// 震央円の透明度
         /// </summary>
-        public int Hypo_Alpha { get; set; } = 204;
+        public int Hypo_Alpha { get; set; } = 153;//公式の変更より204から変更
+
+        /// <summary>
+        /// マグニチュード凡例の塗りつぶし
+        /// </summary>
+        public Color Legend_Mag_Fill { get; set; } = Color.Red;
     }
 }
