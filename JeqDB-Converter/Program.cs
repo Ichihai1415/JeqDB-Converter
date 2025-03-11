@@ -1,6 +1,4 @@
 ﻿using AngleSharp.Html.Parser;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
