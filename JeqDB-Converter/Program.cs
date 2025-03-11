@@ -5,6 +5,9 @@ using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Runtime.Versioning;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using static JeqDB_Converter.Conv;
 
@@ -27,6 +30,11 @@ namespace JeqDB_Converter
         /// </summary>
         public static Config_Color color = new();
 
+        /// <summary>
+        /// JSON出力設定
+        /// </summary>
+        public readonly static JsonSerializerOptions jsonOption = new() { WriteIndented = true };
+
         [SupportedOSPlatform("windows")]//CA1416回避
         static void Main()//todo:何か特殊文字入力で中止
         {
@@ -34,8 +42,8 @@ namespace JeqDB_Converter
             //Console.WriteLine(@"C:\Ichihai1415\source\vs\JeqDB-Converter\JeqDB-Converter\bin\x64\Debug\net9.0\output\image\x_191901010000-202401010000.csv");
             Console.WriteLine(@"C:\Ichihai1415\source\vs\JeqDB-Converter\JeqDB-Converter\bin\x64\Debug\net9.0\output\image\null.csv");
 
-
-            PrivateFontCollection pfc = new();
+            jsonOption.Converters.Add(new ColorConverter());
+            var pfc = new PrivateFontCollection();
             pfc.AddFontFile("Koruri-Regular.ttf");
             font = pfc.Families[0];
             string_Right = new()
@@ -45,8 +53,8 @@ namespace JeqDB_Converter
             };
             Directory.CreateDirectory("output");
             if (File.Exists("colors.json"))
-                color = JsonConvert.DeserializeObject<Config_Color>(File.ReadAllText("colors.json")) ?? new Config_Color();
-            File.WriteAllText("colors.json", JsonConvert.SerializeObject(color, Formatting.Indented));
+                color = JsonSerializer.Deserialize<Config_Color>(File.ReadAllText("colors.json"), jsonOption) ?? new Config_Color();
+            File.WriteAllText("colors.json", JsonSerializer.Serialize(color, jsonOption));
             ConWrite("\n\n        JeqDB-Converter v1.0.3\n        https://github.com/Ichihai1415/JeqDB-Converter\n        READMEを確認してください。\n\n");
 
         restart:
@@ -704,43 +712,41 @@ namespace JeqDB_Converter
         [SupportedOSPlatform("windows")]//CA1416回避
         public static Bitmap DrawMap(Config config)
         {
-#pragma warning disable CS8602 // null 参照の可能性があるものの逆参照です。
-#pragma warning disable CS8604 // Null 参照引数の可能性があります。
-            color = JsonConvert.DeserializeObject<Config_Color>(File.ReadAllText("colors.json")) ?? new Config_Color();
+            color = JsonSerializer.Deserialize<Config_Color>(File.ReadAllText("colors.json"), jsonOption) ?? new Config_Color();
             var mapImg = new Bitmap(config.MapSize * 16 / 9, config.MapSize);
             var zoomW = config.MapSize / (config.LonEnd - config.LonSta);
             var zoomH = config.MapSize / (config.LatEnd - config.LatSta);
-            var json = JObject.Parse(File.ReadAllText("map-world.geojson"));
+            var json = JsonNode.Parse(File.ReadAllText("map-world.geojson")) ?? throw new Exception("マップデータの読み込みに失敗しました。");
             var g = Graphics.FromImage(mapImg);
             g.Clear(color.Map.Sea);
             var maps = new GraphicsPath();
             maps.StartFigure();
-            foreach (var json_1 in json["features"])
+            foreach (var json_1 in json["features"]!.AsArray())
             {
-                if (!json_1["geometry"].Any())
+                if (json_1!["geometry"] == null)
                     continue;
-                var points = json_1["geometry"]["coordinates"][0].Select(json_2 => new Point((int)(((double)json_2[0] - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2[1]) * zoomH))).ToArray();
+                var points = json_1["geometry"]!["coordinates"]![0]!.AsArray().Select(json_2 => new Point((int)(((double)json_2![0]! - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2[1]!) * zoomH))).ToArray();
                 if (points.Length > 2)
                     maps.AddPolygon(points);
             }
             g.FillPath(new SolidBrush(color.Map.World), maps);
 
-            json = JObject.Parse(File.ReadAllText("map-jp.geojson"));
+            json = JsonNode.Parse(File.ReadAllText("map-jp.geojson")) ?? throw new Exception("マップデータの読み込みに失敗しました。");
             maps.Reset();
             maps.StartFigure();
-            foreach (var json_1 in json["features"])
+            foreach (var json_1 in json["features"]!.AsArray())
             {
-                if ((string?)json_1["geometry"]["type"] == "Polygon")
+                if ((string?)json_1!["geometry"]!["type"] == "Polygon")
                 {
-                    var points = json_1["geometry"]["coordinates"][0].Select(json_2 => new Point((int)(((double)json_2[0] - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2[1]) * zoomH))).ToArray();
+                    var points = json_1["geometry"]!["coordinates"]![0]!.AsArray().Select(json_2 => new Point((int)(((double)json_2![0]! - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2[1]!) * zoomH))).ToArray();
                     if (points.Length > 2)
                         maps.AddPolygon(points);
                 }
                 else
                 {
-                    foreach (var json_2 in json_1["geometry"]["coordinates"])
+                    foreach (var json_2 in json_1["geometry"]!["coordinates"]!.AsArray())
                     {
-                        var points = json_2[0].Select(json_3 => new Point((int)(((double)json_3[0] - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_3[1]) * zoomH))).ToArray();
+                        var points = json_2![0]!.AsArray().Select(json_3 => new Point((int)(((double)json_3![0]! - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_3[1]!) * zoomH))).ToArray();
                         if (points.Length > 2)
                             maps.AddPolygon(points);
                     }
@@ -752,8 +758,6 @@ namespace JeqDB_Converter
             //g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), new SolidBrush(color.Text), config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
             g.Dispose();
             return mapImg;
-#pragma warning restore CS8602 // null 参照の可能性があるものの逆参照です。
-#pragma warning restore CS8604 // Null 参照引数の可能性があります。
         }
 
         public static HttpClient client = new();
@@ -786,20 +790,22 @@ namespace JeqDB_Converter
                 var savePath = $"output\\csv\\{startTime:yyyyMMddHHmm}-{endTime:yyyyMMddHHmm}.csv";
                 ConWrite("取得中...");
                 var response = Regex.Unescape(client.GetStringAsync($"https://www.data.jma.go.jp/svd/eqdb/data/shindo/api/api.php?mode=search&dateTimeF[]={startTime:yyyy-MM-dd}&dateTimeF[]={startTime:HH:mm}&dateTimeT[]={endTime:yyyy-MM-dd}&dateTimeT[]={endTime:HH:mm}&mag[]={minMag:0.0}&mag[]={maxMag:0.0}&dep[]={minDepth:000}&dep[]={maxDepth:000}&epi[]=99&pref[]=99&city[]=99&station[]=99&obsInt=1&maxInt={minMaxInt}&additionalC=true&Sort=S0&Comp=C0&seisCount=false&observed=false").Result);
-                var json = JObject.Parse(response);
-                ConWrite($"データ個数 : {json["res"]?.Count()}", ConsoleColor.Green);
+                if (string.IsNullOrEmpty(response))
+                    throw new Exception("応答内容がありません。");
+                var json = JsonNode.Parse(response!) ?? throw new Exception("応答内容がありません。");
+                ConWrite($"データ個数 : {json["res"]!.AsArray()?.Count}", ConsoleColor.Green);
 
-                var str = json["str"];
+                var str = json["str"]!.AsArray();
                 if (str != null)
                     foreach (var data in str)
                         ConWrite((string?)data, ConsoleColor.Green);
                 ConWrite("変換中...");
                 var csv = new StringBuilder("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
-                var res = json["res"];
+                var res = json["res"]!.AsArray();
                 if (res != null)
                     foreach (var data in res)
                     {
-                        var ot = (string?)data["ot"];
+                        var ot = (string?)data!["ot"];
                         if (ot == null)
                             continue;
                         csv.Append(ot.Replace(" ", ","));
@@ -969,6 +975,29 @@ namespace JeqDB_Converter
                 Console.WriteLine(text);
             else
                 Console.Write(text);
+        }
+    }
+
+    /// <summary>
+    /// ColorをJSONシリアライズ/デシアライズできるようにします。
+    /// </summary>
+    public class ColorConverter : JsonConverter<Color>
+    {
+        public override Color Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var colorString = reader.GetString() ?? throw new ArgumentException("値が正しくありません。");
+            var argbValues = colorString.Replace(" ", "").Split(',');
+            if (argbValues.Length == 3)
+                return Color.FromArgb(int.Parse(argbValues[0]), int.Parse(argbValues[1]), int.Parse(argbValues[2]));
+            else if (argbValues.Length == 4)
+                return Color.FromArgb(int.Parse(argbValues[0]), int.Parse(argbValues[1]), int.Parse(argbValues[2]), int.Parse(argbValues[3]));
+            else
+                throw new ArgumentException("値が正しくありません。");
+        }
+
+        public override void Write(Utf8JsonWriter writer, Color value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue($"{value.A}, {value.R}, {value.G}, {value.B}");
         }
     }
 }
