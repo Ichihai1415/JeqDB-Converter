@@ -145,7 +145,11 @@ namespace JeqDB_Converter
                 }
                 catch (Exception ex)
                 {
-                    ConWrite("エラーが発生しました。" + ex.Message + " 再度入力してください。原因がわからない場合報告してください。", ConsoleColor.Red);
+#if DEBUG
+                    ConWrite("エラーが発生しました。" + ex + "\n再度実行してください。", ConsoleColor.Red);
+#else
+                    ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
+#endif
                 }
             }
             ConWrite("保存しました。最初の行の\",検索対象最大震度\"は付かないため含まれる場合手動で追加してください。");
@@ -274,10 +278,12 @@ namespace JeqDB_Converter
                 };
 #endif
                 var savePath = $"output\\image\\{DateTime.Now:yyyyMMddHHmmss}.png";
+
                 ConWrite("描画中...");
                 var zoomW = config.MapSize / (config.LonEnd - config.LonSta);
                 var zoomH = config.MapSize / (config.LatEnd - config.LatSta);
                 var sizeX = config.MagSizeType - (config.MagSizeType / 10 * 10);//倍率
+
 
                 var bitmap = DrawMap(config);
                 var g = Graphics.FromImage(bitmap);
@@ -376,10 +382,10 @@ namespace JeqDB_Converter
                         {
                             var size = m * m * config.MapSize / 216f * sizeX;
                             var magLTx = config.MapSize + LEGEND_MAG_X_2X[m, 0] * config.MapSize / 216f;//left top
-                            var magLTy = config.MapSize * 1 / 2f + LEGEND_MAG_X_2X[m, 1] * config.MapSize / 216f;
+                            var magLTy = config.MapSize / 2f + LEGEND_MAG_X_2X[m, 1] * config.MapSize / 216f;
                             // mag_text
                             var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
-                            g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2 - magSampleSize.Width / 2, magLTy - config.MapSize / 30f);
+                            g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, magLTy - config.MapSize / 30f);
                             // mag_legend
                             if (!File.Exists("CONFIG_LEGEND_NOFILL"))//todo:色設定作ったときに入れる
                                 g.FillEllipse(Brushes.Red, magLTx, magLTy, size, size);
@@ -393,7 +399,7 @@ namespace JeqDB_Converter
                     {
                         //円部分
                         textGP.StartFigure();
-                        textGP.AddString("●", font, 0, config.MapSize / 48f, new PointF(config.MapSize + config.MapSize * (i + 0.125f) / 10.8f, config.MapSize * 13 / 14f), StringFormat.GenericDefault);
+                        textGP.AddString("●", font, 0, config.MapSize / 48f, new PointF(config.MapSize + config.MapSize * (i + 0.125f) / 10.8f, config.MapSize * 13f / 14f), StringFormat.GenericDefault);
                         g.FillPath(Depth2Color(LEGEND_DEP_EX[i], 255), textGP);
                         g.DrawPath(new Pen(Color.FromArgb(color.Hypo_Alpha, color.Text), config.MapSize / 1080f), textGP);
                         textGP.Reset();
@@ -417,7 +423,11 @@ namespace JeqDB_Converter
             }
             catch (Exception ex)
             {
-                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。原因がわからない場合報告してください。", ConsoleColor.Red);
+#if DEBUG
+                ConWrite("エラーが発生しました。" + ex + "\n再度実行してください。", ConsoleColor.Red);
+#else
+                ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
+#endif                
             }
         }
 
@@ -425,8 +435,8 @@ namespace JeqDB_Converter
         /// 動画用画像を描画します。
         /// </summary>
         [SupportedOSPlatform("windows")]//CA1416回避
-        public static void ReadyVideo()
-        {
+        public static void ReadyVideo()//todo:終わったやつを消す?
+        {//todo:円と右欄を結ぶ？
             // 36.4 -  38.4
             //136.2 - 138.2
 #if !TEST
@@ -466,7 +476,7 @@ namespace JeqDB_Converter
                     EndTime = (DateTime)UserInput("終了日時を入力してください。この時間未満まで描画されます。例(2024年1月1日):2024/01/01 00:00:00または2024/01/01", typeof(DateTime)),
                     DrawSpan = (TimeSpan)UserInput("描画間隔を入力してください。この時間毎に描画時刻からこの時間までのものが描画されます。例(6時間):06:00:00", typeof(TimeSpan)),
                     DisappTime = (TimeSpan)UserInput("消失時間を入力してください。発生日時からこの時間過ぎたら完全に消えます。例(1日):1.00:00:00", typeof(TimeSpan)),
-                    MapSize = (int)UserInput("画像の高さを入力してください。幅は16:9になるように計算されます。例:720/1080/2160/4320", typeof(int)),
+                    MapSize = (int)UserInput("画像の高さを入力してください。幅は16:9になるように計算されます。例:720/1080/2160/4320", typeof(int), "1080"),
                     LatSta = (double)UserInput("緯度の始点(地図の下端)を入力してください。例:20", typeof(double), "20"),
                     LatEnd = (double)UserInput("緯度の終点(地図の上端)を入力してください。例:50", typeof(double), "50"),
                     LonSta = (double)UserInput("経度の始点(地図の左端)を入力してください。例:120", typeof(double), "120"),
@@ -483,12 +493,13 @@ namespace JeqDB_Converter
                 ConWrite("描画中...");
                 var saveDir = $"output\\videoimage\\{DateTime.Now:yyyyMMddHHmmss}";
                 Directory.CreateDirectory(saveDir);
-
+                ConWrite("dir: " + saveDir, ConsoleColor.Green);
                 var zoomW = config.MapSize / (config.LonEnd - config.LonSta);
                 var zoomH = config.MapSize / (config.LatEnd - config.LatSta);
+                var sizeX = config.MagSizeType - (config.MagSizeType / 10 * 10);//倍率
+                var drawTime = config.StartTime;//描画対象時間
                 var baseMap = DrawMap(config);
 
-                var drawTime = config.StartTime;//描画対象時間
                 for (var i = 1; drawTime < config.EndTime; i++)//DateTime:古<新==true
                 {
                     datas = datas.SkipWhile(data => data.Time < drawTime - config.DisappTime).ToList();//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
@@ -496,6 +507,139 @@ namespace JeqDB_Converter
 
                     var bitmap = (Bitmap)baseMap.Clone();
                     var g = Graphics.FromImage(bitmap);
+
+                    var texts = new StringBuilder[] { new("\n"), new("\n"), new("\n\n"), new("\n"), new("\n") };
+                    var alpha = color.Hypo_Alpha;
+
+                    var font_msD45 = new Font(font, config.MapSize / 45f, GraphicsUnit.Pixel);
+                    var sb_text = new SolidBrush(color.Text);
+                    var sb_text_sub = new SolidBrush(Color.FromArgb(127, color.Text));
+                    var pen_hypo = new Pen(Color.FromArgb(alpha, 127, 127, 127));
+                    var pen_line = new Pen(Color.FromArgb(127, color.Text), config.MapSize / 1080f);
+
+                    foreach (var data in datas_Draw)//imageとの違い
+                    {
+                        //imageとの違い
+                        alpha = data.Time >= drawTime ? color.Hypo_Alpha : (int)((1d - (drawTime - data.Time).TotalSeconds / config.DisappTime.TotalSeconds) * color.Hypo_Alpha);//消える時間の割合*基本透明度
+
+                        var size = (float)(config.MagSizeType / 10 == 1
+                            ? (Math.Max(1, data.Mag) * config.MapSize / 216d)
+                            : (Math.Max(1, data.Mag) * (Math.Max(1, data.Mag) * config.MapSize / 216d))) * sizeX;//精度と統一のためd
+                        g.FillEllipse(Depth2Color(data.Depth, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
+                        g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
+                        if (Math.Abs(data.MaxInt) >= config.TextInt)//↑imageとの違い
+                        {
+                            texts[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
+                            texts[1].AppendLine(data.Hypo);//詳細不明の可能性
+                            texts[2].Append(data.Depth == -1 ? "不明" : data.Depth.ToString());
+                            texts[2].AppendLine(data.Depth == -1 ? "" : "km");
+                            texts[3].Append(data.Mag == -1d ? "不明" : 'M');
+                            texts[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
+                            texts[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
+                        }
+                    }
+                    var depthSize = g.MeasureString(texts[2].ToString(), font_msD45);//string Formatに必要
+                    var depthHeadSize = g.MeasureString("999km\n深さ", font_msD45);//999kmは最大幅計算用
+                    var oneLineHeight = g.MeasureString("999km", font_msD45).Height;//調整用
+
+                    g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
+                    g.DrawString("発生日時", font_msD45, sb_text_sub, config.MapSize, 0);
+                    g.DrawString("震央", font_msD45, sb_text_sub, config.MapSize * 1.25f, 0);
+                    g.DrawString("999km\n深さ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
+                    g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.5875f, 0);
+                    g.DrawString("最大震度", font_msD45, sb_text_sub, config.MapSize * 1.675f, 0); g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
+
+                    g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
+                    g.DrawString(texts[1].ToString(), font_msD45, sb_text, config.MapSize * 1.25f, 0);
+                    g.DrawString(texts[2].ToString(), font_msD45, sb_text, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthSize), string_Right);
+                    g.DrawString(texts[3].ToString(), font_msD45, sb_text, config.MapSize * 1.5875f, 0);
+                    g.DrawString(texts[4].ToString(), font_msD45, sb_text, config.MapSize * 1.675f, 0);
+                    g.DrawLine(pen_line, config.MapSize, config.MapSize / 30f, bitmap.Width, config.MapSize / 30f);
+
+                    //凡例
+                    var xBase = config.MapSize;//1x系(2xは switch内で修正)
+                    switch (config.MagSizeType)
+                    {
+                        case 11:
+                        case 12:
+                        case 13:
+
+                            // sizes:                    - (config.MapSize / 10f + magMaxSize)
+                            //   [mag_txt]               -  config.MapSize / 48f
+                            //   [mag_leg]               -  magMaxSize
+                            //   [dep_leg]               -  config.MapSize / 48f
+                            //   [map_source, datetime]  -  config.MapSize / 30f
+                            var magMaxSize = 10 * config.MapSize / 216f * sizeX;//マグニチュード凡例円のサイズ(余白を含めたM10相当サイズ)
+                            var yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
+
+                            g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9f * 7f + 1f, magMaxSize + 20f * config.MapSize * sizeX + 1f);//一応+1
+                            g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 216f, config.MapSize * 1261f / 720f, yBase + config.MapSize / 216f);
+
+                            for (int m = 1; m <= 8; m++)
+                            {
+                                var size = m * config.MapSize / 216f * sizeX;
+                                var magLTx = config.MapSize + LEGEND_MAG_X_1X[m] * config.MapSize / 216f;//left top
+                                var magLTy = config.MapSize - magMaxSize / 2f - size / 2f - config.MapSize / 14f;
+                                // mag_text
+                                var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
+                                g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, config.MapSize * 9f / 10f + config.MapSize / 540f - magMaxSize);
+                                // mag_legend
+                                g.FillEllipse(Brushes.Red, magLTx, magLTy, size, size);
+                                g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
+                            }
+                            break;
+                        case 21:
+                        case 22:
+                            // sizes:                    - (config.MapSize / 3.8f + config.MapSize / 10f (= config.MapSize * 69 / 190f))
+                            //   [mag_txt]               - (not fixed position)
+                            //   [mag_leg]               - (not use value)
+                            //   [dep_leg]               -  config.MapSize / 48f
+                            //   [map_source, datetime]  -  config.MapSize / 30f
+                            magMaxSize = config.MapSize / 3.8f;//マグニチュード凡例円部分のサイズ(適当)
+                            yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
+
+                            g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9 * 7 + 1, magMaxSize + 20 * config.MapSize * sizeX + 1);//一応+1
+                            g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 108f, config.MapSize * 1263 / 720f, yBase + config.MapSize / 108f);
+
+                            for (int m = 1; m <= 7; m++)
+                            {
+                                var size = m * m * config.MapSize / 216f * sizeX;
+                                var magLTx = config.MapSize + LEGEND_MAG_X_2X[m, 0] * config.MapSize / 216f;//left top
+                                var magLTy = config.MapSize / 2f + LEGEND_MAG_X_2X[m, 1] * config.MapSize / 216f;
+                                // mag_text
+                                var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
+                                g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, magLTy - config.MapSize / 30f);
+                                // mag_legend
+                                if (!File.Exists("CONFIG_LEGEND_NOFILL"))//todo:色設定作ったときに入れる
+                                    g.FillEllipse(Brushes.Red, magLTx, magLTy, size, size);
+                                g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
+                            }
+                            break;
+                    }
+                    // dep_legend
+                    using (var textGP = new GraphicsPath())
+                        for (int di = 0; di < LEGEND_DEP_EX.Length; di++)
+                        {
+                            //円部分
+                            textGP.StartFigure();
+                            textGP.AddString("●", font, 0, config.MapSize / 48f, new PointF(config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13f / 14f), StringFormat.GenericDefault);
+                            g.FillPath(Depth2Color(LEGEND_DEP_EX[di], 255), textGP);
+                            g.DrawPath(new Pen(Color.FromArgb(color.Hypo_Alpha, color.Text), config.MapSize / 1080f), textGP);
+                            textGP.Reset();
+                            //文字部分
+                            g.DrawString("　" + (LEGEND_DEP_EX[di] == 0 ? " " : string.Empty) + LEGEND_DEP_EX[di] + "km", new Font(font, config.MapSize / 48f, GraphicsUnit.Pixel), sb_text_sub, config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13 / 14f);
+                        };
+
+                    g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 36f, GraphicsUnit.Pixel), sb_text_sub, xBase, config.MapSize * 26 / 27f);
+                    //imageとの違い
+                    g.DrawString(drawTime.ToString("yyyy/MM/dd HH:mm:ss"), new Font(font, config.MapSize / 30f, GraphicsUnit.Pixel), new SolidBrush(color.Text), xBase + config.MapSize / 9f * 4, config.MapSize * 23 / 24f);
+
+
+
+
+
+                    /*
+
                     StringBuilder[] text = [new StringBuilder("発生日時\n"), new StringBuilder("震源\n"), new StringBuilder("999km\n深さ　\n"), new StringBuilder("規模\n"), new StringBuilder("最大震度\n")];
                     foreach (var data in datas_Draw)
                     {
@@ -536,6 +680,8 @@ namespace JeqDB_Converter
                     g.DrawLine(new Pen(Color.White, config.MapSize / 1080f), config.MapSize, config.MapSize * 36 / 1080, bitmap.Width, config.MapSize * 36 / 1080);
                     var mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
                     g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), new SolidBrush(color.Text), config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
+                    */
+
                     var savePath = $"{saveDir}\\{i:d4}.png";
                     bitmap.Save(savePath, ImageFormat.Png);
                     g.Dispose();
@@ -544,10 +690,16 @@ namespace JeqDB_Converter
                     drawTime += config.DrawSpan;
                 }
                 ConWrite($"画像出力完了\n動画化(30fps)(画像ファイルがあるフォルダで): ffmpeg -framerate 30 -i %04d.png -vcodec libx264 -pix_fmt yuv420p -r 30 _output.mp4");
+
+
             }
             catch (Exception ex)
             {
-                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。原因がわからない場合報告してください。", ConsoleColor.Red);
+#if DEBUG
+                ConWrite("エラーが発生しました。" + ex + "\n再度実行してください。", ConsoleColor.Red);
+#else
+                ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
+#endif                
             }
         }
 
@@ -565,11 +717,11 @@ namespace JeqDB_Converter
             g.Clear(color.Map.Sea);
             var maps = new GraphicsPath();
             maps.StartFigure();
-            foreach (var json_1 in json.SelectToken("features"))
+            foreach (var json_1 in json["features"])
             {
-                if (!json_1.SelectToken("geometry").Any())
+                if (!json_1["geometry"].Any())
                     continue;
-                var points = json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))).ToArray();
+                var points = json_1["geometry"]["coordinates"][0].Select(json_2 => new Point((int)(((double)json_2[0] - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2[1]) * zoomH))).ToArray();
                 if (points.Length > 2)
                     maps.AddPolygon(points);
             }
@@ -578,19 +730,19 @@ namespace JeqDB_Converter
             json = JObject.Parse(File.ReadAllText("map-jp.geojson"));
             maps.Reset();
             maps.StartFigure();
-            foreach (var json_1 in json.SelectToken("features"))
+            foreach (var json_1 in json["features"])
             {
-                if ((string?)json_1.SelectToken("geometry.type") == "Polygon")
+                if ((string?)json_1["geometry"]["type"] == "Polygon")
                 {
-                    var points = json_1.SelectToken("geometry.coordinates[0]").Select(json_2 => new Point((int)(((double)json_2.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2.SelectToken("[1]")) * zoomH))).ToArray();
+                    var points = json_1["geometry"]["coordinates"][0].Select(json_2 => new Point((int)(((double)json_2[0] - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2[1]) * zoomH))).ToArray();
                     if (points.Length > 2)
                         maps.AddPolygon(points);
                 }
                 else
                 {
-                    foreach (var json_2 in json_1.SelectToken("geometry.coordinates"))
+                    foreach (var json_2 in json_1["geometry"]["coordinates"])
                     {
-                        var points = json_2.SelectToken("[0]").Select(json_3 => new Point((int)(((double)json_3.SelectToken("[0]") - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_3.SelectToken("[1]")) * zoomH))).ToArray();
+                        var points = json_2[0].Select(json_3 => new Point((int)(((double)json_3[0] - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_3[1]) * zoomH))).ToArray();
                         if (points.Length > 2)
                             maps.AddPolygon(points);
                     }
@@ -637,34 +789,34 @@ namespace JeqDB_Converter
                 ConWrite("取得中...");
                 var response = Regex.Unescape(client.GetStringAsync($"https://www.data.jma.go.jp/svd/eqdb/data/shindo/api/api.php?mode=search&dateTimeF[]={startTime:yyyy-MM-dd}&dateTimeF[]={startTime:HH:mm}&dateTimeT[]={endTime:yyyy-MM-dd}&dateTimeT[]={endTime:HH:mm}&mag[]={minMag:0.0}&mag[]={maxMag:0.0}&dep[]={minDepth:000}&dep[]={maxDepth:000}&epi[]=99&pref[]=99&city[]=99&station[]=99&obsInt=1&maxInt={minMaxInt}&additionalC=true&Sort=S0&Comp=C0&seisCount=false&observed=false").Result);
                 var json = JObject.Parse(response);
-                ConWrite($"データ個数 : {json.SelectToken("res")?.Count()}", ConsoleColor.Green);
+                ConWrite($"データ個数 : {json["res"]?.Count()}", ConsoleColor.Green);
 
-                var str = json.SelectToken("str");
+                var str = json["str"];
                 if (str != null)
                     foreach (var data in str)
                         ConWrite((string?)data, ConsoleColor.Green);
                 ConWrite("変換中...");
                 var csv = new StringBuilder("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
-                var res = json.SelectToken("res");
+                var res = json["res"];
                 if (res != null)
                     foreach (var data in res)
                     {
-                        var ot = (string?)data.SelectToken("ot");
+                        var ot = (string?)data["ot"];
                         if (ot == null)
                             continue;
                         csv.Append(ot.Replace(" ", ","));
                         csv.Append(',');
-                        csv.Append((string?)data.SelectToken("name"));
+                        csv.Append((string?)data["name"]);
                         csv.Append(',');
-                        csv.Append((string?)data.SelectToken("latS"));
+                        csv.Append((string?)data["latS"]);
                         csv.Append(',');
-                        csv.Append((string?)data.SelectToken("lonS"));
+                        csv.Append((string?)data["lonS"]);
                         csv.Append(',');
-                        csv.Append((string?)data.SelectToken("dep"));
+                        csv.Append((string?)data["dep"]);
                         csv.Append(',');
-                        csv.Append((string?)data.SelectToken("mag"));
+                        csv.Append((string?)data["mag"]);
                         csv.Append(',');
-                        csv.Append((string?)data.SelectToken("maxI"));
+                        csv.Append((string?)data["maxI"]);
                         csv.AppendLine();
                     }
                 Directory.CreateDirectory("output\\csv");
@@ -674,7 +826,11 @@ namespace JeqDB_Converter
             }
             catch (Exception ex)
             {
-                ConWrite("エラーが発生しました。" + ex.Message + "再度実行してください。", ConsoleColor.Red);
+#if DEBUG
+                ConWrite("エラーが発生しました。" + ex + "\n再度実行してください。", ConsoleColor.Red);
+#else
+                ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
+#endif                
             }
         }
 
@@ -731,7 +887,11 @@ namespace JeqDB_Converter
             }
             catch (Exception ex)
             {
-                ConWrite("エラーが発生しました。" + ex + "再度実行してください。", ConsoleColor.Red);
+#if DEBUG
+                ConWrite("エラーが発生しました。" + ex + "\n再度実行してください。", ConsoleColor.Red);
+#else
+                ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
+#endif                
             }
         }
 
