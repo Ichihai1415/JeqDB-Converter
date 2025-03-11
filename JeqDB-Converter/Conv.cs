@@ -236,7 +236,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// マグニチュード
         /// </summary>
-        public double Mag { get; set; }//不明を-1にしてるけど震源一覧でMマイナスあるからだめかも
+        public double Mag { get; set; }//todo:不明を-1にしてるけど震源一覧でMマイナスあるからだめかも
 
         /// <summary>
         /// 最大震度
@@ -287,6 +287,11 @@ namespace JeqDB_Converter
         /// テキスト表示最小震度
         /// </summary>
         public int TextInt { get; set; } = 3;
+
+        /// <summary>
+        /// マグニチュード・深さ凡例
+        /// </summary>
+        public bool EnableLegend { get; set; } = true;
 
         /// <summary>
         /// [動画のみ]描画開始日時
@@ -364,5 +369,10 @@ namespace JeqDB_Converter
         /// 震央円の透明度
         /// </summary>
         public int Hypo_Alpha { get; set; } = 153;//公式の変更より204から変更
+
+        /// <summary>
+        /// マグニチュード凡例の塗りつぶし
+        /// </summary>
+        public Color Legend_Mag_Fill { get; set; } = Color.Red;
     }
 }

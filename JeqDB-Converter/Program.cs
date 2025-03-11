@@ -1,9 +1,9 @@
 ﻿using AngleSharp.Html.Parser;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
-using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -35,12 +35,11 @@ namespace JeqDB_Converter
         /// </summary>
         public readonly static JsonSerializerOptions jsonOption = new() { WriteIndented = true };
 
-        [SupportedOSPlatform("windows")]//CA1416回避
         static void Main()//todo:何か特殊文字入力で中止
         {
             //debug
             //Console.WriteLine(@"C:\Ichihai1415\source\vs\JeqDB-Converter\JeqDB-Converter\bin\x64\Debug\net9.0\output\image\x_191901010000-202401010000.csv");
-            Console.WriteLine(@"C:\Ichihai1415\source\vs\JeqDB-Converter\JeqDB-Converter\bin\x64\Debug\net9.0\output\image\null.csv");
+            //Console.WriteLine(@"C:\Ichihai1415\source\vs\JeqDB-Converter\JeqDB-Converter\bin\x64\Debug\net9.0\output\image\null.csv");
 
             jsonOption.Converters.Add(new ColorConverter());
             var pfc = new PrivateFontCollection();
@@ -55,7 +54,14 @@ namespace JeqDB_Converter
             if (File.Exists("colors.json"))
                 color = JsonSerializer.Deserialize<Config_Color>(File.ReadAllText("colors.json"), jsonOption) ?? new Config_Color();
             File.WriteAllText("colors.json", JsonSerializer.Serialize(color, jsonOption));
-            ConWrite("\n\n        JeqDB-Converter v1.0.3\n        https://github.com/Ichihai1415/JeqDB-Converter\n        READMEを確認してください。\n\n");
+            ConWrite("" +
+                "|\n" +
+                "|\n" +
+                "|        JeqDB-Converter v1.1.0\n" +
+                "|        https://github.com/Ichihai1415/JeqDB-Converter\n" +
+                "|        READMEを確認してください。\n" +
+                "|\n" +
+                "+────────────────────────────────────────────────────────────\n");
 
         restart:
             ConWrite("モードを入力してください。");
@@ -237,7 +243,6 @@ namespace JeqDB_Converter
         /// <summary>
         /// 画像を描画します。
         /// </summary>
-        [SupportedOSPlatform("windows")]//CA1416回避
         public static void DrawImage()
         {
 #if !TEST
@@ -280,7 +285,8 @@ namespace JeqDB_Converter
                     "> 13. 11の3倍\n" +
                     "> 21. [マグニチュード強調] マグニチュードxマグニチュードx(画像の高さ÷216)\n" +
                     "> 22. 21の2倍", typeof(int), "11"),
-                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。例:3", typeof(int), "3")
+                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。例:3", typeof(int), "3"),
+                    EnableLegend = (bool)UserInput("マグニチュード・深さの凡例を描画しますか？(y/n)", typeof(bool), "y")
                 };
 #endif
                 var savePath = $"output\\image\\{DateTime.Now:yyyyMMddHHmmss}.png";
@@ -338,85 +344,7 @@ namespace JeqDB_Converter
                 g.DrawString(texts[3].ToString(), font_msD45, sb_text, config.MapSize * 1.5875f, 0);
                 g.DrawString(texts[4].ToString(), font_msD45, sb_text, config.MapSize * 1.675f, 0);
                 g.DrawLine(pen_line, config.MapSize, config.MapSize / 30f, bitmap.Width, config.MapSize / 30f);
-
-                //凡例
-                var xBase = config.MapSize;//1x系(2xは switch内で修正)
-                switch (config.MagSizeType)
-                {
-                    case 11:
-                    case 12:
-                    case 13:
-
-                        // sizes:                    - (config.MapSize / 10f + magMaxSize)
-                        //   [mag_txt]               -  config.MapSize / 48f
-                        //   [mag_leg]               -  magMaxSize
-                        //   [dep_leg]               -  config.MapSize / 48f
-                        //   [map_source, datetime]  -  config.MapSize / 30f
-                        var magMaxSize = 10 * config.MapSize / 216f * sizeX;//マグニチュード凡例円のサイズ(余白を含めたM10相当サイズ)
-                        var yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
-
-                        g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9f * 7f + 1f, magMaxSize + 20f * config.MapSize * sizeX + 1f);//一応+1
-                        g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 216f, config.MapSize * 1261f / 720f, yBase + config.MapSize / 216f);
-
-                        for (int m = 1; m <= 8; m++)
-                        {
-                            var size = m * config.MapSize / 216f * sizeX;
-                            var magLTx = config.MapSize + LEGEND_MAG_X_1X[m] * config.MapSize / 216f;//left top
-                            var magLTy = config.MapSize - magMaxSize / 2f - size / 2f - config.MapSize / 14f;
-                            // mag_text
-                            var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
-                            g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, config.MapSize * 9f / 10f + config.MapSize / 540f - magMaxSize);
-                            // mag_legend
-                            g.FillEllipse(Brushes.Red, magLTx, magLTy, size, size);
-                            g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
-                        }
-                        break;
-                    case 21:
-                    case 22:
-                        // sizes:                    - (config.MapSize / 3.8f + config.MapSize / 10f (= config.MapSize * 69 / 190f))
-                        //   [mag_txt]               - (not fixed position)
-                        //   [mag_leg]               - (not use value)
-                        //   [dep_leg]               -  config.MapSize / 48f
-                        //   [map_source, datetime]  -  config.MapSize / 30f
-                        magMaxSize = config.MapSize / 3.8f;//マグニチュード凡例円部分のサイズ(適当)
-                        yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
-
-                        g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9 * 7 + 1, magMaxSize + 20 * config.MapSize * sizeX + 1);//一応+1
-                        g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 108f, config.MapSize * 1263 / 720f, yBase + config.MapSize / 108f);
-
-                        for (int m = 1; m <= 7; m++)
-                        {
-                            var size = m * m * config.MapSize / 216f * sizeX;
-                            var magLTx = config.MapSize + LEGEND_MAG_X_2X[m, 0] * config.MapSize / 216f;//left top
-                            var magLTy = config.MapSize / 2f + LEGEND_MAG_X_2X[m, 1] * config.MapSize / 216f;
-                            // mag_text
-                            var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
-                            g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, magLTy - config.MapSize / 30f);
-                            // mag_legend
-                            if (!File.Exists("CONFIG_LEGEND_NOFILL"))//todo:色設定作ったときに入れる
-                                g.FillEllipse(Brushes.Red, magLTx, magLTy, size, size);
-                            g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
-                        }
-                        break;
-                }
-                // dep_legend
-                using (var textGP = new GraphicsPath())
-                    for (int i = 0; i < LEGEND_DEP_EX.Length; i++)
-                    {
-                        //円部分
-                        textGP.StartFigure();
-                        textGP.AddString("●", font, 0, config.MapSize / 48f, new PointF(config.MapSize + config.MapSize * (i + 0.125f) / 10.8f, config.MapSize * 13f / 14f), StringFormat.GenericDefault);
-                        g.FillPath(Depth2Color(LEGEND_DEP_EX[i], 255), textGP);
-                        g.DrawPath(new Pen(Color.FromArgb(color.Hypo_Alpha, color.Text), config.MapSize / 1080f), textGP);
-                        textGP.Reset();
-                        //文字部分
-                        g.DrawString("　" + (LEGEND_DEP_EX[i] == 0 ? " " : string.Empty) + LEGEND_DEP_EX[i] + "km", new Font(font, config.MapSize / 48f, GraphicsUnit.Pixel), sb_text_sub, config.MapSize + config.MapSize * (i + 0.125f) / 10.8f, config.MapSize * 13 / 14f);
-                    };
-
-                g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 36f, GraphicsUnit.Pixel), sb_text_sub, xBase, config.MapSize * 26 / 27f);
-                //g.DrawString("2222/22/22 22:22:22", new Font(font, config.MapSize / 30f, GraphicsUnit.Pixel), new SolidBrush(color.Text), xBase + config.MapSize / 9f * 4, config.MapSize * 23 / 24f);
-
-
+                g.DrawImage(DrawLegend(config), 0, 0);
 
                 Directory.CreateDirectory("output\\image");
                 bitmap.Save(savePath, ImageFormat.Png);
@@ -440,7 +368,6 @@ namespace JeqDB_Converter
         /// <summary>
         /// 動画用画像を描画します。
         /// </summary>
-        [SupportedOSPlatform("windows")]//CA1416回避
         public static void ReadyVideo()//todo:終わったやつを消す?
         {//todo:円と右欄を結ぶ？
             // 36.4 -  38.4
@@ -493,26 +420,30 @@ namespace JeqDB_Converter
                     "> 13. 11の3倍\n" +
                     "> 21. [マグニチュード強調] マグニチュードxマグニチュードx(画像の高さ÷216)\n" +
                     "> 22. 21の2倍", typeof(int), "11"),
-                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。", typeof(int), "3")
+                    TextInt = (int)UserInput("右欄に表示する最小震度を入力してください。震度2:2 震度5弱,震度5(強弱なし):5 震度6強:8のようにしてください。", typeof(int), "3"),
+                    EnableLegend = (bool)UserInput("マグニチュード・深さの凡例を描画しますか？(y/n)", typeof(bool), "y")
                 };
 #endif
                 ConWrite("描画中...");
                 var saveDir = $"output\\videoimage\\{DateTime.Now:yyyyMMddHHmmss}";
+                var dataSum = datas.Count();
                 Directory.CreateDirectory(saveDir);
                 ConWrite("dir: " + saveDir, ConsoleColor.Green);
                 var zoomW = config.MapSize / (config.LonEnd - config.LonSta);
                 var zoomH = config.MapSize / (config.LatEnd - config.LatSta);
                 var sizeX = config.MagSizeType - (config.MagSizeType / 10 * 10);//倍率
                 var drawTime = config.StartTime;//描画対象時間
-                var baseMap = DrawMap(config);
+                var bitmap_baseMap = DrawMap(config);
+                var bitmap_legend = DrawLegend(config);
 
+                //各描画開始
                 for (var i = 1; drawTime < config.EndTime; i++)//DateTime:古<新==true
                 {
                     datas = datas.SkipWhile(data => data.Time < drawTime - config.DisappTime).ToList();//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
                     var datas_Draw = datas.Where(data => data.Time < drawTime + config.DrawSpan);//抜き出し
 
-                    var bitmap = (Bitmap)baseMap.Clone();
-                    var g = Graphics.FromImage(bitmap);
+                    using var bitmap = (Bitmap)bitmap_baseMap.Clone();
+                    using var g = Graphics.FromImage(bitmap);
 
                     var texts = new StringBuilder[] { new("\n"), new("\n"), new("\n\n"), new("\n"), new("\n") };
                     var alpha = color.Hypo_Alpha;
@@ -527,7 +458,6 @@ namespace JeqDB_Converter
                     {
                         //imageとの違い
                         alpha = data.Time >= drawTime ? color.Hypo_Alpha : (int)((1d - (drawTime - data.Time).TotalSeconds / config.DisappTime.TotalSeconds) * color.Hypo_Alpha);//消える時間の割合*基本透明度
-
                         var size = (float)(config.MagSizeType / 10 == 1
                             ? (Math.Max(1, data.Mag) * config.MapSize / 216d)
                             : (Math.Max(1, data.Mag) * (Math.Max(1, data.Mag) * config.MapSize / 216d))) * sizeX;//精度と統一のためd
@@ -562,142 +492,25 @@ namespace JeqDB_Converter
                     g.DrawString(texts[4].ToString(), font_msD45, sb_text, config.MapSize * 1.675f, 0);
                     g.DrawLine(pen_line, config.MapSize, config.MapSize / 30f, bitmap.Width, config.MapSize / 30f);
 
-                    //凡例
-                    var xBase = config.MapSize;//1x系(2xは switch内で修正)
-                    switch (config.MagSizeType)
-                    {
-                        case 11:
-                        case 12:
-                        case 13:
-
-                            // sizes:                    - (config.MapSize / 10f + magMaxSize)
-                            //   [mag_txt]               -  config.MapSize / 48f
-                            //   [mag_leg]               -  magMaxSize
-                            //   [dep_leg]               -  config.MapSize / 48f
-                            //   [map_source, datetime]  -  config.MapSize / 30f
-                            var magMaxSize = 10 * config.MapSize / 216f * sizeX;//マグニチュード凡例円のサイズ(余白を含めたM10相当サイズ)
-                            var yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
-
-                            g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9f * 7f + 1f, magMaxSize + 20f * config.MapSize * sizeX + 1f);//一応+1
-                            g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 216f, config.MapSize * 1261f / 720f, yBase + config.MapSize / 216f);
-
-                            for (int m = 1; m <= 8; m++)
-                            {
-                                var size = m * config.MapSize / 216f * sizeX;
-                                var magLTx = config.MapSize + LEGEND_MAG_X_1X[m] * config.MapSize / 216f;//left top
-                                var magLTy = config.MapSize - magMaxSize / 2f - size / 2f - config.MapSize / 14f;
-                                // mag_text
-                                var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
-                                g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, config.MapSize * 9f / 10f + config.MapSize / 540f - magMaxSize);
-                                // mag_legend
-                                g.FillEllipse(Brushes.Red, magLTx, magLTy, size, size);
-                                g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
-                            }
-                            break;
-                        case 21:
-                        case 22:
-                            // sizes:                    - (config.MapSize / 3.8f + config.MapSize / 10f (= config.MapSize * 69 / 190f))
-                            //   [mag_txt]               - (not fixed position)
-                            //   [mag_leg]               - (not use value)
-                            //   [dep_leg]               -  config.MapSize / 48f
-                            //   [map_source, datetime]  -  config.MapSize / 30f
-                            magMaxSize = config.MapSize / 3.8f;//マグニチュード凡例円部分のサイズ(適当)
-                            yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
-
-                            g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9 * 7 + 1, magMaxSize + 20 * config.MapSize * sizeX + 1);//一応+1
-                            g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 108f, config.MapSize * 1263 / 720f, yBase + config.MapSize / 108f);
-
-                            for (int m = 1; m <= 7; m++)
-                            {
-                                var size = m * m * config.MapSize / 216f * sizeX;
-                                var magLTx = config.MapSize + LEGEND_MAG_X_2X[m, 0] * config.MapSize / 216f;//left top
-                                var magLTy = config.MapSize / 2f + LEGEND_MAG_X_2X[m, 1] * config.MapSize / 216f;
-                                // mag_text
-                                var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
-                                g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, magLTy - config.MapSize / 30f);
-                                // mag_legend
-                                if (!File.Exists("CONFIG_LEGEND_NOFILL"))//todo:色設定作ったときに入れる
-                                    g.FillEllipse(Brushes.Red, magLTx, magLTy, size, size);
-                                g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
-                            }
-                            break;
-                    }
-                    // dep_legend
-                    using (var textGP = new GraphicsPath())
-                        for (int di = 0; di < LEGEND_DEP_EX.Length; di++)
-                        {
-                            //円部分
-                            textGP.StartFigure();
-                            textGP.AddString("●", font, 0, config.MapSize / 48f, new PointF(config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13f / 14f), StringFormat.GenericDefault);
-                            g.FillPath(Depth2Color(LEGEND_DEP_EX[di], 255), textGP);
-                            g.DrawPath(new Pen(Color.FromArgb(color.Hypo_Alpha, color.Text), config.MapSize / 1080f), textGP);
-                            textGP.Reset();
-                            //文字部分
-                            g.DrawString("　" + (LEGEND_DEP_EX[di] == 0 ? " " : string.Empty) + LEGEND_DEP_EX[di] + "km", new Font(font, config.MapSize / 48f, GraphicsUnit.Pixel), sb_text_sub, config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13 / 14f);
-                        };
-
-                    g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 36f, GraphicsUnit.Pixel), sb_text_sub, xBase, config.MapSize * 26 / 27f);
+                    g.DrawImage(bitmap_legend, 0, 0);
+                    var xBase = config.MapSize;
                     //imageとの違い
                     g.DrawString(drawTime.ToString("yyyy/MM/dd HH:mm:ss"), new Font(font, config.MapSize / 30f, GraphicsUnit.Pixel), new SolidBrush(color.Text), xBase + config.MapSize / 9f * 4, config.MapSize * 23 / 24f);
 
 
-
-
-
-                    /*
-
-                    StringBuilder[] text = [new StringBuilder("発生日時\n"), new StringBuilder("震源\n"), new StringBuilder("999km\n深さ　\n"), new StringBuilder("規模\n"), new StringBuilder("最大震度\n")];
-                    foreach (var data in datas_Draw)
-                    {
-                        var size = (int)(Math.Max(1, data.Mag) * config.MapSize / 216);
-                        if (config.MagSizeType / 10 == 2)//2x
-                            size = (int)(Math.Pow(Math.Max(1, data.Mag), 2) * config.MapSize / 216);
-                        if (config.MagSizeType % 10 == 2)//x2
-                            size *= 2;
-                        else if (config.MagSizeType % 10 == 3)
-                            size *= 3;
-                        var alpha = color.Hypo_Alpha;
-                        if (data.Time < drawTime)//描画時間より前
-                            alpha = (int)((1d - (drawTime - data.Time).TotalSeconds / config.DisappTime.TotalSeconds) * alpha);//消える時間の割合*基本透明度
-                        g.FillEllipse(Depth2Color(data.Depth, alpha), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
-                        g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (int)((data.Lon - config.LonSta) * zoomW) - size / 2, (int)((config.LatEnd - data.Lat) * zoomH) - size / 2, size, size);
-                        if (Math.Abs(data.MaxInt) >= config.TextInt)
-                        {
-                            text[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
-                            text[1].AppendLine(data.Hypo);
-                            text[2].Append(data.Depth == -1 ? "不明" : data.Depth.ToString());
-                            text[2].AppendLine(data.Depth == -1 ? "" : "km");
-                            text[3].Append(data.Mag == -1d ? "不明" : 'M');
-                            text[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
-                            text[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
-                        }
-                    }
-                    var depthSize = g.MeasureString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel));
-                    var oneLineHeight = (int)g.MeasureString("999km", new Font(font, config.MapSize / 45, GraphicsUnit.Pixel)).Height;//調整用
-
-                    g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
-                    var textColor = new SolidBrush(color.Text);
-                    g.DrawString(drawTime.ToString("yyyy/MM/dd HH:mm:ss"), new Font(font, config.MapSize / 24, GraphicsUnit.Pixel), Brushes.White, 0, 0);
-                    g.DrawString(text[0].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, config.MapSize, 0);
-                    g.DrawString(text[1].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.25), 0);
-                    g.DrawString(text[2].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, new RectangleF(new Point((int)(config.MapSize * 1.5), -oneLineHeight), depthSize), string_Right);
-                    g.DrawString(text[3].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.5875), 0);
-                    g.DrawString(text[4].ToString(), new Font(font, config.MapSize / 45, GraphicsUnit.Pixel), textColor, (int)(config.MapSize * 1.675), 0);
-                    g.DrawLine(new Pen(Color.White, config.MapSize / 1080f), config.MapSize, config.MapSize * 36 / 1080, bitmap.Width, config.MapSize * 36 / 1080);
-                    var mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
-                    g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), new SolidBrush(color.Text), config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
-                    */
-
-                    var savePath = $"{saveDir}\\{i:d4}.png";
+                    var savePath = $"{saveDir}\\{i:d5}.png";
                     bitmap.Save(savePath, ImageFormat.Png);
-                    g.Dispose();
-                    bitmap.Dispose();
-                    ConWrite($"{drawTime:yyyy/MM/dd HH:mm:ss} {i:d4}.png : {datas_Draw.Count()}", ConsoleColor.Green);
+                    ConWrite($"{drawTime:yyyy/MM/dd HH:mm:ss}  {i:d5}.png : {datas_Draw.Count()}  (内部残り: {datas.Count()} / {dataSum})", ConsoleColor.Green);
                     drawTime += config.DrawSpan;
+                    if (i % 10 == 0)
+                        GC.Collect();
                 }
-                ConWrite($"画像出力完了\n動画化(30fps)(画像ファイルがあるフォルダで): ffmpeg -framerate 30 -i %04d.png -vcodec libx264 -pix_fmt yuv420p -r 30 _output.mp4");
-
-
+                ConWrite($"画像出力完了\n動画化(30fps)(画像ファイルがあるフォルダで): ffmpeg -framerate 30 -i %05d.png -vcodec libx264 -pix_fmt yuv420p -r 30 _output.mp4");
+                if (int.TryParse((string)UserInput("ffmpegで動画を作成する場合、fps(フレームレート)を入力してください。ffmpeg.exeのパスが通っている必要があります。\n数値への変換に失敗したら終了します。数字以外を何か入力してください。例:30", typeof(string), "30"), out int f))
+                {
+                    using var pro = Process.Start("ffmpeg", $"-framerate {f} -i \"{saveDir}\\%05d.png\" -vcodec libx264 -pix_fmt yuv420p -r {f} \"{saveDir}\\_output_{f}.mp4\"");
+                    pro.WaitForExit();
+                }
             }
             catch (Exception ex)
             {
@@ -709,7 +522,118 @@ namespace JeqDB_Converter
             }
         }
 
-        [SupportedOSPlatform("windows")]//CA1416回避
+        /// <summary>
+        /// 凡例を描画します(同一描画防止)。
+        /// </summary>
+        /// <param name="config">設定</param>
+        /// <returns>凡例(凡例外は透明)</returns>
+        public static Bitmap DrawLegend(Config config)
+        {
+            var alpha = color.Hypo_Alpha;
+            var sizeX = config.MagSizeType - (config.MagSizeType / 10 * 10);//倍率
+            var xBase = config.MapSize;
+
+            var font_msD45 = new Font(font, config.MapSize / 45f, GraphicsUnit.Pixel);
+            var sb_text_sub = new SolidBrush(Color.FromArgb(127, color.Text));
+            var pen_hypo = new Pen(Color.FromArgb(alpha, 127, 127, 127));
+            var pen_line = new Pen(Color.FromArgb(127, color.Text), config.MapSize / 1080f);
+
+            var bitmap_legend = new Bitmap(config.MapSize * 16 / 9, config.MapSize);
+            using var g = Graphics.FromImage(bitmap_legend);
+
+            if (!config.EnableLegend)
+            {
+                g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, config.MapSize * 26f / 27f, config.MapSize / 9f * 7f + 1f, config.MapSize / 27f + 1f);//一応+1
+                g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 36f, GraphicsUnit.Pixel), sb_text_sub, xBase, config.MapSize * 26 / 27f);
+
+                //g.FillRectangle(Brushes.Black, config.MapSize, config.MapSize * 26f / 27f, config.MapSize / 9f * 7f + 1f, config.MapSize / 27f + 1f);//一応+1
+                //g.DrawString("2222/22/22 22:22:22", new Font(font, config.MapSize / 30f, GraphicsUnit.Pixel), new SolidBrush(color.Text), xBase + config.MapSize / 9f * 4, config.MapSize * 23 / 24f);
+
+                return bitmap_legend;
+            }
+
+            //凡例
+            switch (config.MagSizeType)
+            {
+                case 11:
+                case 12:
+                case 13:
+                    // sizes:                    - (config.MapSize / 10f + magMaxSize)
+                    //   [mag_txt]               -  config.MapSize / 48f
+                    //   [mag_leg]               -  magMaxSize
+                    //   [dep_leg]               -  config.MapSize / 48f
+                    //   [map_source, datetime]  -  config.MapSize / 30f
+                    var magMaxSize = 10 * config.MapSize / 216f * sizeX;//マグニチュード凡例円のサイズ(余白を含めたM10相当サイズ)
+                    var yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
+
+                    g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9f * 7f + 1f, magMaxSize + 20f * config.MapSize * sizeX + 1f);//一応+1
+                    g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 216f, config.MapSize * 1261f / 720f, yBase + config.MapSize / 216f);
+
+                    for (int m = 1; m <= 8; m++)
+                    {
+                        var size = m * config.MapSize / 216f * sizeX;
+                        var magLTx = config.MapSize + LEGEND_MAG_X_1X[m] * config.MapSize / 216f;//left top
+                        var magLTy = config.MapSize - magMaxSize / 2f - size / 2f - config.MapSize / 14f;
+                        // mag_text
+                        var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
+                        g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, config.MapSize * 9f / 10f + config.MapSize / 540f - magMaxSize);
+                        // mag_legend
+                        g.FillEllipse(new SolidBrush(color.Legend_Mag_Fill), magLTx, magLTy, size, size);
+                        g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
+                    }
+                    break;
+                case 21:
+                case 22:
+                    // sizes:                    - (config.MapSize / 3.8f + config.MapSize / 10f (= config.MapSize * 69 / 190f))
+                    //   [mag_txt]               - (not fixed position)
+                    //   [mag_leg]               - (not use value)
+                    //   [dep_leg]               -  config.MapSize / 48f
+                    //   [map_source, datetime]  -  config.MapSize / 30f
+                    magMaxSize = config.MapSize / 3.8f;//マグニチュード凡例円部分のサイズ(適当)
+                    yBase = config.MapSize - magMaxSize - config.MapSize / 10f;
+
+                    g.FillRectangle(new SolidBrush(color.InfoBack), xBase, yBase, config.MapSize / 9 * 7 + 1, magMaxSize + 20 * config.MapSize * sizeX + 1);//一応+1
+                    g.DrawLine(pen_line, xBase + config.MapSize / 80f, yBase + config.MapSize / 108f, config.MapSize * 1263 / 720f, yBase + config.MapSize / 108f);
+
+                    for (int m = 1; m <= 7; m++)
+                    {
+                        var size = m * m * config.MapSize / 216f * sizeX;
+                        var magLTx = config.MapSize + LEGEND_MAG_X_2X[m, 0] * config.MapSize / 216f;//left top
+                        var magLTy = config.MapSize / 2f + LEGEND_MAG_X_2X[m, 1] * config.MapSize / 216f;
+                        // mag_text
+                        var magSampleSize = g.MeasureString("M" + m + ".0", font_msD45);
+                        g.DrawString("M" + m + ".0", font_msD45, sb_text_sub, magLTx + size / 2f - magSampleSize.Width / 2f, magLTy - config.MapSize / 30f);
+                        // mag_legend
+                        g.FillEllipse(new SolidBrush(color.Legend_Mag_Fill), magLTx, magLTy, size, size);
+                        g.DrawEllipse(pen_hypo, magLTx, magLTy, size, size);
+                    }
+                    break;
+            }
+            // dep_legend
+            using (var textGP = new GraphicsPath())
+                for (int di = 0; di < LEGEND_DEP_EX.Length; di++)
+                {
+                    //円部分
+                    textGP.StartFigure();
+                    textGP.AddString("●", font, 0, config.MapSize / 48f, new PointF(config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13f / 14f), StringFormat.GenericDefault);
+                    g.FillPath(Depth2Color(LEGEND_DEP_EX[di], 255), textGP);
+                    g.DrawPath(new Pen(Color.FromArgb(color.Hypo_Alpha, color.Text), config.MapSize / 1080f), textGP);
+                    textGP.Reset();
+                    //文字部分
+                    g.DrawString("　" + (LEGEND_DEP_EX[di] == 0 ? " " : string.Empty) + LEGEND_DEP_EX[di] + "km", new Font(font, config.MapSize / 48f, GraphicsUnit.Pixel), sb_text_sub, config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13 / 14f);
+                };
+
+            g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 36f, GraphicsUnit.Pixel), sb_text_sub, xBase, config.MapSize * 26 / 27f);
+            //g.DrawString("2222/22/22 22:22:22", new Font(font, config.MapSize / 30f, GraphicsUnit.Pixel), new SolidBrush(color.Text), xBase + config.MapSize / 9f * 4, config.MapSize * 23 / 24f);
+            return bitmap_legend;
+        }
+
+        /// <summary>
+        /// ベースの地図を描画します
+        /// </summary>
+        /// <param name="config">設定</param>
+        /// <returns>描画された地図</returns>
+        /// <exception cref="Exception">マップデータの読み込みに失敗した場合</exception>
         public static Bitmap DrawMap(Config config)
         {
             color = JsonSerializer.Deserialize<Config_Color>(File.ReadAllText("colors.json"), jsonOption) ?? new Config_Color();
@@ -922,6 +846,8 @@ namespace JeqDB_Converter
                         input = nullText;
                         ConWrite(nullText + "(自動入力)", ConsoleColor.Cyan);
                     }
+                    if (resType == typeof(bool))
+                        return input == "y";
                     return resType.Name switch
                     {
                         "String" => input,
