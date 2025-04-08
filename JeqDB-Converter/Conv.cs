@@ -16,14 +16,19 @@ namespace JeqDB_Converter
         public static Data Text2Data(string text)
         {
             string[] datas = text.Split(',');
+            if (datas[1].EndsWith("データ")) throw new Exception("処理ミスです。備考:datas[1]が" + datas[1] + "です。");
+            //2021/04/11,05:30:08.0,詳細不明,29°13.0′N,129°20.0′E,0 km,不明,震度１
+            //2008/05/12,15:41:53.0,詳細不明（阿蘇山付近）,32°53.0′N,131°05.0′E,0 km,不明,震度１
+            //1981/06/26,時分不明データ,不明,不明,不明,不明,震度１
+            //1962年08月,日時分不明データ,不明,不明,不明,不明,震度１
             return new Data
             {
                 Time = DateTime.Parse($"{datas[0]} {datas[1]}"),
                 Hypo = datas[2],
                 Lat = LatLonString2Double(datas[3]),
                 Lon = LatLonString2Double(datas[4]),
-                Depth = (datas[2].StartsWith("詳細不明") && datas[5] == "0 km") ? -1 : int.Parse(datas[5].Replace(" km", "").Replace("不明", "-1")),//詳細不明震源で0kmの場合不明に
-                Mag = double.Parse(datas[6].Replace("不明", "-1")),
+                Depth = datas[2].StartsWith("詳細不明") || datas[5] == "不明" ? null : int.Parse(datas[5].Replace(" km", "")),//震源、規模不明なとき
+                Mag = datas[6] == "不明" ? double.NaN : double.Parse(datas[6]),
                 MaxInt = MaxIntString2Int(datas[7])
             };
         }
@@ -132,38 +137,40 @@ namespace JeqDB_Converter
         }
 
         [SupportedOSPlatform("windows")]//CA1416回避
-        public static SolidBrush Depth2Color(int depth, int alpha = 204)
+        public static SolidBrush Depth2Color(int? depth, int alpha = 204)
         {
+            var d = depth == null ? 0d : (double)depth;
+            if (d < 0) d = 0;
             //震度データベースjsより
-            double l = 50;
-            double h = 0;
+            var l = 50d;
+            var h = 0d;
             if (depth <= 10)
-                l = 50 - 25d * ((10 - depth) / 10d);
+                l = 50 - 25d * ((10d - d) / 10d);
             else if (depth <= 20)
-                h = 30d * ((depth - 10) / 10d);
+                h = 30d * ((d - 10d) / 10d);
             else if (depth <= 30)
-                h = 30d + 30d * ((depth - 20) / 10d);
+                h = 30d + 30d * ((d - 20d) / 10d);
             else if (depth <= 50)
-                h = 60;
+                h = 60d;
             else if (depth <= 100)
             {
-                h = 60 + 60d * ((depth - 50) / 50d);
-                l = 50 + 25d * ((50 - depth) / 100d);
+                h = 60d + 60d * ((d - 50d) / 50d);
+                l = 50d + 25d * ((50d - d) / 100d);
             }
             else if (depth <= 200)
             {
-                h = 120 + 90d * ((depth - 100) / 100d);
-                l = 25 - 30d * ((100 - depth) / 100d);
+                h = 120d + 90d * ((d - 100d) / 100d);
+                l = 25d - 30d * ((100d - d) / 100d);
             }
             else if (depth <= 700)
             {
-                h = 210 + 30d * ((depth - 200) / 500d);
-                l = 55 + 30d * ((200 - depth) / 500d);
+                h = 210d + 30d * ((d - 200d) / 500d);
+                l = 55d + 30d * ((200d - d) / 500d);
             }
             else
             {
-                h = 240;
-                l = 25;
+                h = 240d;
+                l = 25d;
             }
             return new SolidBrush(HSL2RGB((int)h, 100, (int)l, alpha));
         }
@@ -231,12 +238,12 @@ namespace JeqDB_Converter
         /// <summary>
         /// 深さ
         /// </summary>
-        public int Depth { get; set; }
+        public int? Depth { get; set; } = null;
 
         /// <summary>
         /// マグニチュード
         /// </summary>
-        public double Mag { get; set; }//todo:不明を-1にしてるけど震源一覧でMマイナスあるからだめかも
+        public double Mag { get; set; } = double.NaN;
 
         /// <summary>
         /// 最大震度

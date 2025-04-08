@@ -33,7 +33,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// JSON出力設定
         /// </summary>
-        public readonly static JsonSerializerOptions jsonOption = new() { WriteIndented = true };
+        public static readonly JsonSerializerOptions jsonOption = new() { WriteIndented = true };
 
         static void Main()//todo:何か特殊文字入力で中止
         {
@@ -259,6 +259,7 @@ namespace JeqDB_Converter
                 var datas_ = File.ReadAllLines(path.Replace("\"", ""));
 #endif
                 ConWrite("変換中...");
+                //利便的な意味でIEnumerable<Data>にしとく
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x => !x.Contains("不明データ")).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 #if TEST
                 Config config = new()
@@ -316,14 +317,14 @@ namespace JeqDB_Converter
                         : (Math.Max(1, data.Mag) * (Math.Max(1, data.Mag) * config.MapSize / 216d))) * sizeX;//精度と統一のためd
                     g.FillEllipse(Depth2Color(data.Depth, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
                     g.DrawEllipse(pen_hypo, (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
-                    if (Math.Abs(data.MaxInt) >= config.TextInt)
+                    if (Math.Abs(data.MaxInt) >= config.TextInt && data.MaxInt != -1)
                     {
                         texts[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                         texts[1].AppendLine(data.Hypo);//詳細不明の可能性
-                        texts[2].Append(data.Depth == -1 ? "不明" : data.Depth.ToString());
-                        texts[2].AppendLine(data.Depth == -1 ? "" : "km");
-                        texts[3].Append(data.Mag == -1d ? "不明" : 'M');
-                        texts[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
+                        texts[2].Append(data.Depth == null ? "不明" : data.Depth.ToString());
+                        texts[2].AppendLine(data.Depth == null ? "" : "km");
+                        texts[3].Append(double.IsNaN(data.Mag) ? "不明" : 'M');
+                        texts[3].AppendLine(double.IsNaN(data.Mag) ? "" : data.Mag.ToString("0.0"));
                         texts[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
                     }
                 }
@@ -368,7 +369,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// 動画用画像を描画します。
         /// </summary>
-        public static void ReadyVideo()//todo:終わったやつを消す?
+        public static void ReadyVideo()
         {//todo:円と右欄を結ぶ？
             // 36.4 -  38.4
             //136.2 - 138.2
@@ -383,9 +384,10 @@ namespace JeqDB_Converter
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 var path = Console.ReadLine() ?? "";
 
-                var datas_ = path == "\\" ? MergeFiles([]).Replace("\r", "").Split('\n') : File.ReadAllLines(path.Replace("\"", ""));//gitで触ると\r付く
+                var datas_ = path == "\\" ? MergeFiles([]).Replace("\r", "").Split('\n') : File.ReadAllLines(path.Replace("\"", ""));//gitで触ると\r付く？
 #endif
                 ConWrite("変換中...");
+                //利便的な意味でIEnumerable<Data>にしとく
                 IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x => !x.Contains("不明データ")).Select(Text2Data).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 #if TEST
                 var config = new Config()
@@ -439,7 +441,7 @@ namespace JeqDB_Converter
                 //各描画開始
                 for (var i = 1; drawTime < config.EndTime; i++)//DateTime:古<新==true
                 {
-                    datas = datas.SkipWhile(data => data.Time < drawTime - config.DisappTime).ToList();//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
+                    datas = [.. datas.SkipWhile(data => data.Time < drawTime - config.DisappTime)];//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
                     var datas_Draw = datas.Where(data => data.Time < drawTime + config.DrawSpan);//抜き出し
 
                     using var bitmap = (Bitmap)bitmap_baseMap.Clone();
@@ -467,10 +469,10 @@ namespace JeqDB_Converter
                         {
                             texts[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                             texts[1].AppendLine(data.Hypo);//詳細不明の可能性
-                            texts[2].Append(data.Depth == -1 ? "不明" : data.Depth.ToString());
-                            texts[2].AppendLine(data.Depth == -1 ? "" : "km");
-                            texts[3].Append(data.Mag == -1d ? "不明" : 'M');
-                            texts[3].AppendLine(data.Mag == -1d ? "" : data.Mag.ToString("0.0"));
+                            texts[2].Append(data.Depth == null ? "不明" : data.Depth.ToString());
+                            texts[2].AppendLine(data.Depth == null ? "" : "km");
+                            texts[3].Append(double.IsNaN(data.Mag) ? "不明" : 'M');
+                            texts[3].AppendLine(double.IsNaN(data.Mag) ? "" : data.Mag.ToString("0.0"));
                             texts[4].AppendLine(MaxIntInt2String(data.MaxInt, true));
                         }
                     }
@@ -621,7 +623,8 @@ namespace JeqDB_Converter
                     textGP.Reset();
                     //文字部分
                     g.DrawString("　" + (LEGEND_DEP_EX[di] == 0 ? " " : string.Empty) + LEGEND_DEP_EX[di] + "km", new Font(font, config.MapSize / 48f, GraphicsUnit.Pixel), sb_text_sub, config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13 / 14f);
-                };
+                }
+            ;
 
             g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 36f, GraphicsUnit.Pixel), sb_text_sub, xBase, config.MapSize * 26 / 27f);
             //g.DrawString("2222/22/22 22:22:22", new Font(font, config.MapSize / 30f, GraphicsUnit.Pixel), new SolidBrush(color.Text), xBase + config.MapSize / 9f * 4, config.MapSize * 23 / 24f);
