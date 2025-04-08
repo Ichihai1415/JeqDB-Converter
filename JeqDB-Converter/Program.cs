@@ -43,7 +43,7 @@ namespace JeqDB_Converter
 
             jsonOption.Converters.Add(new ColorConverter());
             var pfc = new PrivateFontCollection();
-            pfc.AddFontFile("Koruri-Regular.ttf");
+            pfc.AddFontFile("Koruri-Regular.ttf");//todo:単一ファイルoublishだとこれを読み込めないから注意
             font = pfc.Families[0];
             string_Right = new()
             {
@@ -57,7 +57,7 @@ namespace JeqDB_Converter
             ConWrite("" +
                 "|\n" +
                 "|\n" +
-                "|        JeqDB-Converter v1.1.0\n" +
+                "|        JeqDB-Converter v1.1.1\n" +
                 "|        https://github.com/Ichihai1415/JeqDB-Converter\n" +
                 "|        READMEを確認してください。\n" +
                 "|\n" +
