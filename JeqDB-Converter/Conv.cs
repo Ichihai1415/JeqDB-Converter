@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Runtime.Versioning;
+using System.Text.Json.Serialization;
 
 namespace JeqDB_Converter
 {
@@ -27,7 +28,7 @@ namespace JeqDB_Converter
                 Hypo = datas[2],
                 Lat = LatLonString2Double(datas[3]),
                 Lon = LatLonString2Double(datas[4]),
-                Depth = datas[2].StartsWith("詳細不明") || datas[5] == "不明" ? null : int.Parse(datas[5].Replace(" km", "")),//震源、規模不明なとき
+                Depth = datas[2].StartsWith("詳細不明") || datas[5] == "不明" ? null : double.Parse(datas[5].Replace(" km", "")),//震源、規模不明なとき
                 Mag = datas[6] == "不明" ? double.NaN : double.Parse(datas[6]),
                 MaxInt = MaxIntString2Int(datas[7])
             };
@@ -49,7 +50,7 @@ namespace JeqDB_Converter
                 Hypo = datas[9],
                 Lat = LatLonString2Double(datas[5]),
                 Lon = LatLonString2Double(datas[6]),
-                Depth = int.Parse(datas[7]),
+                Depth = double.Parse(datas[7]),
                 Mag = double.Parse(datas[8].Replace("-", "-1")),
                 MaxInt = -1
             };
@@ -68,7 +69,7 @@ namespace JeqDB_Converter
 
 
         /// <summary>
-        /// 緯度や経度を60進数表記からdoubleに変換します。
+        /// 緯度や経度をdoubleから60進数表記に変換します。
         /// </summary>
         /// <param name="ll">緯度や経度</param>
         /// <param name="isLat">緯度か</param>
@@ -137,7 +138,7 @@ namespace JeqDB_Converter
         }
 
         [SupportedOSPlatform("windows")]//CA1416回避
-        public static SolidBrush Depth2Color(int? depth, int alpha = 204)
+        public static SolidBrush Depth2Color(double? depth, int alpha = 204)
         {
             var d = depth == null ? 0d : (double)depth;
             if (d < 0) d = 0;
@@ -238,7 +239,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// 深さ
         /// </summary>
-        public int? Depth { get; set; } = null;
+        public double? Depth { get; set; } = null;
 
         /// <summary>
         /// マグニチュード
@@ -381,5 +382,66 @@ namespace JeqDB_Converter
         /// マグニチュード凡例の塗りつぶし
         /// </summary>
         public Color Legend_Mag_Fill { get; set; } = Color.Red;
+    }
+
+    /// <summary>
+    /// 震央分布気象庁内部API
+    /// </summary>
+    public class JMAEpicenters
+    {
+        [JsonPropertyName("type")]
+        public required string Type { get; set; }
+
+        [JsonPropertyName("features")]
+        public required C_Feature[] Features { get; set; }
+
+        public class C_Feature
+        {
+            [JsonPropertyName("type")]
+            public required string Type { get; set; }
+
+            [JsonPropertyName("geometry")]
+            public required C_Geometry Geometry { get; set; }
+
+            [JsonPropertyName("properties")]
+            public required C_Properties Properties { get; set; }
+
+
+            public class C_Geometry
+            {
+                [JsonPropertyName("type")]
+                public required string Type { get; set; }
+
+                [JsonPropertyName("coordinates")]
+                public required double[] Coordinates { get; set; }
+            }
+
+            public class C_Properties
+            {
+                [JsonPropertyName("date")]
+                public required string Date { get; set; }
+
+                [JsonPropertyName("dep")]
+                public required string Dep { get; set; }
+
+                [JsonPropertyName("mag")]
+                public required string Mag { get; set; }
+
+                [JsonPropertyName("mj")]
+                public required string Mj { get; set; }
+
+                [JsonPropertyName("place")]
+                public required string Place { get; set; }
+
+                [JsonPropertyName("si")]
+                public required string Si { get; set; }
+
+                [JsonPropertyName("aflag")]
+                public required string Aflag { get; set; }
+
+                [JsonPropertyName("flag")]
+                public required string Flag { get; set; }
+            }
+        }
     }
 }
