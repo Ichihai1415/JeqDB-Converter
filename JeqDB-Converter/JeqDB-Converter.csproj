@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <StartupObject>JeqDB_Converter.Program</StartupObject>
     <Company>$(Authors)</Company>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <Platforms>AnyCPU;x64</Platforms>
     <Configurations>Debug;Release;Test</Configurations>
     <Authors>Ichihai1415</Authors>
