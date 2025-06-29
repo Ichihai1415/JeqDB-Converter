@@ -60,7 +60,7 @@ namespace JeqDB_Converter
             ConWrite("" +
                 "|\n" +
                 "|\n" +
-                "|        JeqDB-Converter v1.1.2\n" +
+                "|        JeqDB-Converter v1.1.3\n" +
                 "|        https://github.com/Ichihai1415/JeqDB-Converter\n" +
                 "|        READMEを確認してください。\n" +
                 "|\n" +
@@ -68,7 +68,7 @@ namespace JeqDB_Converter
 #if DEBUG
             ConWrite(Path.GetFullPath("JeqDB-Converter.exe").Replace("JeqDB-Converter.exe", "\n"));
 #endif
-            ConWrite("<備考情報>震央分布の取得、描画を追加しましたが、右欄に描画すると震央名がはみ出ます。ご了承ください。\n");//todo: 毎回ここチェック
+            ConWrite("<備考情報>震央分布の描画は右欄に情報を描画すると震央名がはみ出ます。ご了承ください。\n");//todo: 毎回ここチェック
         restart:
             ConWrite("モードを入力してください。");
             ConWrite("> 1.複数ファイルの結合");
@@ -79,7 +79,7 @@ namespace JeqDB_Converter
             ConWrite("> 6.震央分布取得");
             ConWrite("> 0.終了");
             int mode;
-            while (true)
+            while (true)//todo:普通にstringで判定
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 var select = Console.ReadLine();
@@ -192,7 +192,7 @@ namespace JeqDB_Converter
                     var file = Console.ReadLine();
                     if (!string.IsNullOrEmpty(file))
                         filesTmp.Add(file.Replace("\"", ""));
-                    else if (filesTmp.Count < 2)
+                    else if (filesTmp.Count == 0)
                     {
                         ConWrite("中止します。");
                         return "";
@@ -327,7 +327,7 @@ namespace JeqDB_Converter
                         : (Math.Max(1, data.Mag) * (Math.Max(1, data.Mag) * config.MapSize / 216d))) * sizeX;//精度と統一のためd
                     g.FillEllipse(Depth2Color(data.Depth, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
                     g.DrawEllipse(pen_hypo, (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
-                    if (Math.Abs(data.MaxInt) >= config.TextInt || (config.TextInt == -1 && data.MaxInt == -1))
+                    if ((Math.Abs(data.MaxInt) >= config.TextInt && data.MaxInt != -1) || (config.TextInt == -1 && data.MaxInt == -1))
                     {
                         texts[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                         texts[1].AppendLine(data.Hypo);//詳細不明の可能性
@@ -478,7 +478,7 @@ namespace JeqDB_Converter
                             : (Math.Max(1, data.Mag) * (Math.Max(1, data.Mag) * config.MapSize / 216d))) * sizeX;//精度と統一のためd
                         g.FillEllipse(Depth2Color(data.Depth, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
                         g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
-                        if (Math.Abs(data.MaxInt) >= config.TextInt || (config.TextInt == -1 && data.MaxInt == -1))//↑imageとの違い
+                        if ((Math.Abs(data.MaxInt) >= config.TextInt && data.MaxInt != -1) || (config.TextInt == -1 && data.MaxInt == -1))//↑imageとの違い
                         {
                             texts[0].AppendLine(data.Time.ToString("yyyy/MM/dd HH:mm:ss.f"));
                             texts[1].AppendLine(data.Hypo);//詳細不明の可能性
@@ -650,7 +650,7 @@ namespace JeqDB_Converter
         /// <param name="config">設定</param>
         /// <returns>描画された地図</returns>
         /// <exception cref="Exception">マップデータの読み込みに失敗した場合</exception>
-        public static Bitmap DrawMap(Config config)
+        public static Bitmap DrawMap(Config config)//todo:新しい描画方法に変える
         {
             color = JsonSerializer.Deserialize<Config_Color>(File.ReadAllText("colors.json"), jsonOption) ?? new Config_Color();
             var mapImg = new Bitmap(config.MapSize * 16 / 9, config.MapSize);
@@ -796,30 +796,20 @@ namespace JeqDB_Converter
                 ConWrite("解析中...");
                 var document = parser.ParseDocument(response);
                 var pre = document.QuerySelector("pre")!.TextContent;
-                var lines = pre.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(2);
-                var datas = lines.Select(HypoText2Data);
-                ConWrite($"データ個数 : {datas.Count()}", ConsoleColor.Green);
+                var lines_converted = pre.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(2).Select(HypoText2EqdbData);
+                ConWrite($"データ個数: {lines_converted.Count()}", ConsoleColor.Green);
 
-                var csv = new StringBuilder("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+                var csv = "地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n" + (string.Join('\n', lines_converted))
+                     .Replace(",- km,", ",不明,").Replace(",-,", ",不明,").Replace("'", "′")
+                     .Replace("/1/", "/01/").Replace("/2/", "/02/").Replace("/3/", "/03/").Replace("/4/", "/04/").Replace("/5/", "/05/")//月調整
+                     .Replace("/6/", "/06/").Replace("/7/", "/07/").Replace("/8/", "/08/").Replace("/9/", "/09/")
+                     .Replace("/1,", "/01,").Replace("/2,", "/02,").Replace("/3,", "/03,").Replace("/4,", "/04,").Replace("/5,", "/05,")//日調整
+                     .Replace("/6,", "/06,").Replace("/7,", "/07,").Replace("/8,", "/08,").Replace("/9,", "/09,")
+                     .Replace(":1.", ":01.").Replace(":2.", ":02.").Replace(":3.", ":03.").Replace(":4.", ":04.").Replace(":5.", ":05.")//秒調整
+                     .Replace(":6.", ":06.").Replace(":7.", ":07.").Replace(":8.", ":08.").Replace(":9.", ":09.").Replace(":0.", ":00.")
+                     .Replace("°1.", "°01.").Replace("°2.", "°02.").Replace("°3.", "°03.").Replace("°4.", "°04.").Replace("°5.", "°05.")//緯度経度分調整
+                     .Replace("°6.", "°06.").Replace("°7.", "°07.").Replace("°8.", "°08.").Replace("°9.", "°09.").Replace("°0.", "°00.");
                 var savePath = "output\\csv\\hypo\\" + date.ToString("yyyyMMdd") + ".csv";
-
-                foreach (var data in datas)
-                {
-                    //2024/01/03,20:07:02.4,能登半島沖,37°12.6′N,136°40.9′E,8 km,2.9,震度１
-                    csv.Append(data.Time.ToString("yyyy/MM/dd,HH:mm:ss.f"));
-                    csv.Append(',');
-                    csv.Append(data.Hypo);
-                    csv.Append(',');
-                    csv.Append(LatLonDouble2String(data.Lat, true));
-                    csv.Append(',');
-                    csv.Append(LatLonDouble2String(data.Lon, false));
-                    csv.Append(',');
-                    csv.Append(data.Depth);
-                    csv.Append(" km,");
-                    csv.Append(data.Mag);
-                    csv.Append(",---");
-                    csv.AppendLine();
-                }
 
                 Directory.CreateDirectory("output\\csv\\hypo");
                 File.WriteAllText(savePath, csv.ToString());
@@ -837,6 +827,18 @@ namespace JeqDB_Converter
         }
 
         /// <summary>
+        /// 震源リスト1行のデータを震度データベース形式に変換します。
+        /// </summary>
+        /// <param name="text">csv1行</param>
+        /// <returns>震度データベース形式のデータ</returns>
+        public static string HypoText2EqdbData(string text)
+        {
+            var datas = text.Replace("° ", "°").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return (datas[0] + "/" + datas[1] + "/" + datas[2] + "," + datas[3] + ":" + datas[4] + "," + datas[9] + "," + datas[5] + "," + datas[6] + "," +
+                datas[7] + " km," + datas[8] + ",---");
+        }
+
+        /// <summary>
         /// 震央分布(無感含む)を震度データベース互換に変換
         /// </summary>
         /// <remarks>気象庁内部APIを利用します。震度は---になります。</remarks>
@@ -844,7 +846,7 @@ namespace JeqDB_Converter
         {
             try
             {
-                ConWrite("無感含む1~2週間程度前以降の震央分布(https://www.jma.go.jp/bosai/map.html#///&contents=hypo)を震度データベース互換に変換します。保存後に複数ファイルの結合をすることで震度データベースのものと一緒に描画できます(同一地震判定はしません)。一般に公開されていない気象庁内部APIということに留意してください。当日はデータが少ない、精度が低い可能性があります。備考:2025/06/26時点では06/01からデータがありました。");
+                ConWrite("無感含む約1年前以降の震央分布(https://www.jma.go.jp/bosai/map.html#///&contents=hypo)を震度データベース互換に変換します。保存後に複数ファイルの結合をすることで震度データベースのものと一緒に描画できます(同一地震判定はしません)。一般に公開されていない気象庁内部APIということに留意してください。当日(15時程度以前の場合ば前日も)はデータが少ない、精度が低い(時刻が分単位など)可能性があります。備考:2025/06/29時点では2024/06/19からデータがありました。");
                 var date = (DateTime)UserInput("取得する日付を入力してください。形式:2025/01/01", typeof(DateTime));
                 var url = $"https://www.jma.go.jp/bosai/hypo/data/{date:yyyy/MM}/hypo{date:yyyyMMdd}.geojson";
                 ConWrite("取得中...");
@@ -860,7 +862,7 @@ namespace JeqDB_Converter
                     csv.Append(dateSts[0]);
                     csv.Append(',');
                     csv.Append(dateSts[1]);
-                    if (dateSts.Length > 2)//当日のはない？
+                    if (dateSts.Length > 2)//当日などのはない
                     {
                         csv.Append('.');
                         csv.Append(dateSts[2]);

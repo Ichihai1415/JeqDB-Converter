@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <StartupObject>JeqDB_Converter.Program</StartupObject>
     <Company>$(Authors)</Company>
-    <Version>1.1.2</Version>
+    <Version>1.1.3</Version>
     <Platforms>AnyCPU;x64</Platforms>
     <Configurations>Debug;Release;Test</Configurations>
     <Authors>Ichihai1415</Authors>
@@ -44,7 +44,7 @@
     <None Include="..\LICENSE.txt">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="..\README.md">
       <Pack>True</Pack>
@@ -63,16 +63,16 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Koruri-LICENSE">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Koruri-Regular.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="map-jp.geojson">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="map-world.geojson">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
