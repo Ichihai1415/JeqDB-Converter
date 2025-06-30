@@ -405,23 +405,55 @@ namespace JeqDB_Converter
         /// </summary>
         public static void DrawMT()
         {
-            var width = (int)UserInput("画像の幅を入力してください。うち50pxは軸ラベルです。例:850", typeof(int), "850");
+            var width = (int)UserInput("画像の幅を入力してください。うち50pxは軸ラベル、10pxは右余白です。例:860", typeof(int), "860");
             var height = (int)UserInput("画像の高さを入力してください。うち50pxはタイトル、うち30pxは軸ラベルです。例:280", typeof(int), "280");
+            var graphW = width - 60;
+            var graphH = height - 80;
+
             var img = new Bitmap(width, height);
 
             var title = (string)UserInput("タイトルを入力してください。", typeof(string));
 
-            var f10 = new Font("MS UI Gothic", 10, GraphicsUnit.Pixel);
-            var f30 = new Font("MS UI Gothic", 30, GraphicsUnit.Pixel);
-            var f40 = new Font("MS UI Gothic", 40, GraphicsUnit.Pixel);
+            var f10 = new Font(font, 10, GraphicsUnit.Pixel);
+            var f16 = new Font(font, 16, GraphicsUnit.Pixel);
+            var f20 = new Font(font, 20, GraphicsUnit.Pixel);
+            var f30 = new Font(font, 30, GraphicsUnit.Pixel);
+            var f40 = new Font(font, 40, GraphicsUnit.Pixel);
 
             using var g = Graphics.FromImage(img);
             g.Clear(Color.White);
+            //g.CompositingQuality = CompositingQuality.HighQuality;
+            //g.SmoothingMode = SmoothingMode.AntiAlias;
             g.DrawString(title, f30, Brushes.Black, (width - g.MeasureString(title, f30).Width) / 2f, 10);
+
+            /*
             g.DrawLine(Pens.Black, 0, 50, width, 50);
             g.DrawLine(Pens.Black, 0, height - 30, width, height - 30);
             g.DrawLine(Pens.Black, 50, 0, 50, height);
+            */
+            g.DrawLine(Pens.Black, 50, 50, 50, height - 30);
+            var magW_minus = g.MeasureString("-", f16).Width;
+            var magHd2 = g.MeasureString("0.0", f16).Height / 2f;
+            var m_min = -1f;
+            var m_max = 6f;
+            var magH_area = graphH / (m_max - m_min + 1);
+            for (var m = m_min; m <= m_max; m++)
+            {
+                var magX = (50 - g.MeasureString(m + ".0", f16).Width) / 2f;
+                var magY_r = 50 + magH_area * (m_max - m + 0.5f);
+                g.DrawString(m + ".0", f16, Brushes.Black, magX, magY_r - magHd2);
+                g.DrawLine(Pens.Black, 45, magY_r, 55, magY_r);
+            }
+            g.DrawLine(Pens.Black, 50, height - 30, width, height - 30);
 
+            //var dtFromat = "dd HH:mm";
+            //for ()//文字サイズと幅を考慮して数を決める
+            //{
+            //    var magX = (50 - g.MeasureString(m + ".0", f16).Width) / 2f;
+            //    var magY_r = 50 + magH_area * (m_max - m + 0.5f);
+            //    g.DrawString(m + ".0", f16, Brushes.Black, magX, magY_r - magHd2);
+            //    g.DrawLine(Pens.Black, 45, magY_r, 55, magY_r);
+            //}
 
 
             Directory.CreateDirectory("output\\image");
