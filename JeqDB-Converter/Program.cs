@@ -101,7 +101,7 @@ namespace JeqDB_Converter
                     MergeFiles();
                     break;
                 case 2:
-                    DrawImage();
+                    DrawImage2();
                     break;
                 case 3:
                     ReadyVideo();
@@ -374,6 +374,58 @@ namespace JeqDB_Converter
                 ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
 #endif                
             }
+        }
+
+        /// <summary>
+        /// 画像を描画します。
+        /// </summary>
+        public static void DrawImage2()
+        {
+            ConWrite("モードを入力してください。");
+            ConWrite("> 1.震央分布図");
+            ConWrite("> 2.M-T図");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            var mode = Console.ReadLine();
+            switch (mode)
+            {
+                case "1":
+                    DrawImage2();
+                    break;
+                case "2":
+                    DrawMT();
+                    break;
+                default:
+                    throw new Exception("正しくありません。");
+            }
+
+        }
+
+        /// <summary>
+        /// MT図を描画します
+        /// </summary>
+        public static void DrawMT()
+        {
+            var width = (int)UserInput("画像の幅を入力してください。うち50pxは軸ラベルです。例:850", typeof(int), "850");
+            var height = (int)UserInput("画像の高さを入力してください。うち50pxはタイトル、うち30pxは軸ラベルです。例:280", typeof(int), "280");
+            var img = new Bitmap(width, height);
+
+            var title = (string)UserInput("タイトルを入力してください。", typeof(string));
+
+            var f10 = new Font("MS UI Gothic", 10, GraphicsUnit.Pixel);
+            var f30 = new Font("MS UI Gothic", 30, GraphicsUnit.Pixel);
+            var f40 = new Font("MS UI Gothic", 40, GraphicsUnit.Pixel);
+
+            using var g = Graphics.FromImage(img);
+            g.Clear(Color.White);
+            g.DrawString(title, f30, Brushes.Black, (width - g.MeasureString(title, f30).Width) / 2f, 10);
+            g.DrawLine(Pens.Black, 0, 50, width, 50);
+            g.DrawLine(Pens.Black, 0, height - 30, width, height - 30);
+            g.DrawLine(Pens.Black, 50, 0, 50, height);
+
+
+
+            Directory.CreateDirectory("output\\image");
+            img.Save("output\\image\\" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".png", ImageFormat.Png);
         }
 
         /// <summary>
