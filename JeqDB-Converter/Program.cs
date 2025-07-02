@@ -339,22 +339,24 @@ namespace JeqDB_Converter
                     }
                 }
                 var depthSize = g.MeasureString(texts[2].ToString(), font_msD45);//string Formatに必要
-                var depthHeadSize = g.MeasureString("999km\n深さ", font_msD45);//999kmは最大幅計算用
-                var oneLineHeight = g.MeasureString("999km", font_msD45).Height;//調整用
+                var depthHeadSize = g.MeasureString("999.9km\n深さ", font_msD45);//999kmは最大幅計算用
+                var oneLineHeight = g.MeasureString("999.9km", font_msD45).Height;//調整用
 
                 g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                 g.DrawString("発生日時", font_msD45, sb_text_sub, config.MapSize, 0);
                 g.DrawString("震央", font_msD45, sb_text_sub, config.MapSize * 1.25f, 0);
-                g.DrawString("999km\n深さ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
-                g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.5875f, 0);
+                g.DrawString("999.9km\n深さ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
+                g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.602625f, 0);
                 g.DrawString("最大震度", font_msD45, sb_text_sub, config.MapSize * 1.675f, 0); g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
 
                 g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
                 g.DrawString(texts[1].ToString(), font_msD45, sb_text, config.MapSize * 1.25f, 0);
+                g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize * 1.5f, config.MapSize / 30f, bitmap.Width - config.MapSize * 1.5f, config.MapSize * 29 / 30f);
                 g.DrawString(texts[2].ToString(), font_msD45, sb_text, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthSize), string_Right);
-                g.DrawString(texts[3].ToString(), font_msD45, sb_text, config.MapSize * 1.5875f, 0);
+                g.DrawString(texts[3].ToString(), font_msD45, sb_text, config.MapSize * 1.602625f, 0);
                 g.DrawString(texts[4].ToString(), font_msD45, sb_text, config.MapSize * 1.675f, 0);
                 g.DrawLine(pen_line, config.MapSize, config.MapSize / 30f, bitmap.Width, config.MapSize / 30f);
+
                 g.DrawImage(DrawLegend(config), 0, 0);
 
                 Directory.CreateDirectory("output\\image");
@@ -381,23 +383,33 @@ namespace JeqDB_Converter
         /// </summary>
         public static void DrawImage2()
         {
-            ConWrite("モードを入力してください。");
-            ConWrite("> 1.震央分布図");
-            ConWrite("> 2.M-T図");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            var mode = Console.ReadLine();
-            switch (mode)
+            try
             {
-                case "1":
-                    DrawImage2();
-                    break;
-                case "2":
-                    DrawMT();
-                    break;
-                default:
-                    throw new Exception("正しくありません。");
+                ConWrite("モードを入力してください。");
+                ConWrite("> 1.震央分布図");
+                ConWrite("> 2.M-T図");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                var mode = Console.ReadLine();
+                switch (mode)
+                {
+                    case "1":
+                        DrawImage();
+                        break;
+                    case "2":
+                        DrawMT();
+                        break;
+                    default:
+                        throw new Exception("入力が正しくありません。");
+                }
             }
-
+            catch (Exception ex)
+            {
+#if DEBUG
+                ConWrite("エラーが発生しました。" + ex + "\n再度実行してください。", ConsoleColor.Red);
+#else
+                ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
+#endif                
+            }
         }
 
         /// <summary>
@@ -574,20 +586,21 @@ namespace JeqDB_Converter
                         }
                     }
                     var depthSize = g.MeasureString(texts[2].ToString(), font_msD45);//string Formatに必要
-                    var depthHeadSize = g.MeasureString("999km\n深さ", font_msD45);//999kmは最大幅計算用
-                    var oneLineHeight = g.MeasureString("999km", font_msD45).Height;//調整用
+                    var depthHeadSize = g.MeasureString("999.9km\n深さ", font_msD45);//999kmは最大幅計算用
+                    var oneLineHeight = g.MeasureString("999.9km", font_msD45).Height;//調整用
 
                     g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                     g.DrawString("発生日時", font_msD45, sb_text_sub, config.MapSize, 0);
                     g.DrawString("震央", font_msD45, sb_text_sub, config.MapSize * 1.25f, 0);
-                    g.DrawString("999km\n深さ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
-                    g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.5875f, 0);
+                    g.DrawString("999.9km\n深さ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
+                    g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.602625f, 0);
                     g.DrawString("最大震度", font_msD45, sb_text_sub, config.MapSize * 1.675f, 0); g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
 
                     g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
                     g.DrawString(texts[1].ToString(), font_msD45, sb_text, config.MapSize * 1.25f, 0);
+                    g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize * 1.5f, config.MapSize / 30f, bitmap.Width - config.MapSize * 1.5f, config.MapSize * 29 / 30f);
                     g.DrawString(texts[2].ToString(), font_msD45, sb_text, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthSize), string_Right);
-                    g.DrawString(texts[3].ToString(), font_msD45, sb_text, config.MapSize * 1.5875f, 0);
+                    g.DrawString(texts[3].ToString(), font_msD45, sb_text, config.MapSize * 1.602625f, 0);
                     g.DrawString(texts[4].ToString(), font_msD45, sb_text, config.MapSize * 1.675f, 0);
                     g.DrawLine(pen_line, config.MapSize, config.MapSize / 30f, bitmap.Width, config.MapSize / 30f);
 
