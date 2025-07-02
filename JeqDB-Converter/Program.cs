@@ -83,6 +83,11 @@ namespace JeqDB_Converter
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 var select = Console.ReadLine();
+                if (select == "o")
+                {
+                    ToOriginalCsv();
+                    return;
+                }
                 if (int.TryParse(select, null, out int selectNum))
                     if (0 <= selectNum && selectNum <= 6)
                     {
@@ -1072,6 +1077,18 @@ namespace JeqDB_Converter
                 Console.WriteLine(text);
             else
                 Console.Write(text);
+        }
+
+        public static void ToOriginalCsv()
+        {
+            var path = (string)UserInput("元csvファイルのパスを入力してください。生成ファイルは$\"{ファイル名}+_converted.csv\"となります。", typeof(string));
+            var oldCsv = File.ReadAllLines(path);
+            var oldCSvConverted = oldCsv.Skip(1).Select(Text2Data);
+            var newCsv = new List<string> { oldCsv[0] };
+            newCsv.AddRange(oldCSvConverted.Select(
+                x => x.Time.ToString("yyyy/MM/dd,HH:mm:ss.ff") + "," + x.Hypo + "," + x.Lat + "," + x.Lon + "," + x.Depth + "," + x.Mag + "," + x.MaxInt));
+            File.WriteAllLines(path.Replace(".csv","_converted.csv"), newCsv);
+            ConWrite(path.Replace(".csv", "_converted.csv") + " に保存しました。");
         }
     }
 
