@@ -829,7 +829,7 @@ namespace JeqDB_Converter
                 var maxDepth = (int)UserInput("最大深さを入力してください。例:999", typeof(int), "999");
                 var minMaxInt = (string)UserInput("最大震度x以上 xを入力してください。ただし5弱:A,5強:B,6弱:C,6強:Dです。例:1", typeof(string), "1");
 #endif
-                var savePath = $"output\\csv\\{startTime:yyyyMMddHHmm}-{endTime:yyyyMMddHHmm}.csv";
+                var savePath = $"output\\csv\\eqdb\\{startTime:yyyyMMddHHmm}-{endTime:yyyyMMddHHmm}.csv";
                 ConWrite("取得中...");
                 var response = Regex.Unescape(client.GetStringAsync($"https://www.data.jma.go.jp/svd/eqdb/data/shindo/api/api.php?mode=search&dateTimeF[]={startTime:yyyy-MM-dd}&dateTimeF[]={startTime:HH:mm}&dateTimeT[]={endTime:yyyy-MM-dd}&dateTimeT[]={endTime:HH:mm}&mag[]={minMag:0.0}&mag[]={maxMag:0.0}&dep[]={minDepth:000}&dep[]={maxDepth:000}&epi[]=99&pref[]=99&city[]=99&station[]=99&obsInt=1&maxInt={minMaxInt}&additionalC=true&Sort=S0&Comp=C0&seisCount=false&observed=false").Result);
                 if (string.IsNullOrEmpty(response))
@@ -865,7 +865,7 @@ namespace JeqDB_Converter
                         csv.Append((string?)data["maxI"]);
                         csv.AppendLine();
                     }
-                Directory.CreateDirectory("output\\csv");
+                Directory.CreateDirectory("output\\csv\\eqdb");
                 File.WriteAllText(savePath, csv.ToString());
                 ConWrite(savePath, ConsoleColor.Green);
                 ConWrite("保存しました。");
