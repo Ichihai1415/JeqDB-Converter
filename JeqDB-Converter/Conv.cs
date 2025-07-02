@@ -120,7 +120,7 @@ namespace JeqDB_Converter
         {
             return maxInt switch
             {
-                -1 => hankaku ? "---" : "---",
+                -1 => hankaku ? " - - - - - " : " - - - - - ",
                 0 => hankaku ? "震度0" : "震度０",
                 1 => hankaku ? "震度1" : "震度１",
                 2 => hankaku ? "震度2" : "震度２",

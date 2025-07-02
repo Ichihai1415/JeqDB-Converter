@@ -316,7 +316,7 @@ namespace JeqDB_Converter
                 var bitmap = DrawMap(config);
                 var g = Graphics.FromImage(bitmap);
 
-                var texts = new StringBuilder[] { new("\n"), new("\n"), new("\n\n"), new("\n"), new("\n") };
+                var texts = new StringBuilder[] { new("\n"), new("\n"), new("999.9km\n\n"), new("\n"), new("\n") };
                 var alpha = color.Hypo_Alpha;
 
                 var font_msD45 = new Font(font, config.MapSize / 45f, GraphicsUnit.Pixel);
@@ -344,13 +344,13 @@ namespace JeqDB_Converter
                     }
                 }
                 var depthSize = g.MeasureString(texts[2].ToString(), font_msD45);//string Formatに必要
-                var depthHeadSize = g.MeasureString("999.9km\n深さ", font_msD45);//999kmは最大幅計算用
+                var depthHeadSize = g.MeasureString("999.9km\n", font_msD45);//最大幅計算用
                 var oneLineHeight = g.MeasureString("999.9km", font_msD45).Height;//調整用
 
                 g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                 g.DrawString("発生日時", font_msD45, sb_text_sub, config.MapSize, 0);
                 g.DrawString("震央", font_msD45, sb_text_sub, config.MapSize * 1.25f, 0);
-                g.DrawString("999.9km\n深さ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
+                g.DrawString("999.9km\n深さ ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
                 g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.602625f, 0);
                 g.DrawString("最大震度", font_msD45, sb_text_sub, config.MapSize * 1.675f, 0); g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
 
@@ -561,7 +561,7 @@ namespace JeqDB_Converter
                     using var bitmap = (Bitmap)bitmap_baseMap.Clone();
                     using var g = Graphics.FromImage(bitmap);
 
-                    var texts = new StringBuilder[] { new("\n"), new("\n"), new("\n\n"), new("\n"), new("\n") };
+                    var texts = new StringBuilder[] { new("\n"), new("\n"), new("999.9km\n\n"), new("\n"), new("\n") };
                     var alpha = color.Hypo_Alpha;
 
                     var font_msD45 = new Font(font, config.MapSize / 45f, GraphicsUnit.Pixel);
@@ -591,13 +591,13 @@ namespace JeqDB_Converter
                         }
                     }
                     var depthSize = g.MeasureString(texts[2].ToString(), font_msD45);//string Formatに必要
-                    var depthHeadSize = g.MeasureString("999.9km\n深さ", font_msD45);//999kmは最大幅計算用
+                    var depthHeadSize = g.MeasureString("999.9km\n", font_msD45);//最大幅計算用
                     var oneLineHeight = g.MeasureString("999.9km", font_msD45).Height;//調整用
 
                     g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                     g.DrawString("発生日時", font_msD45, sb_text_sub, config.MapSize, 0);
                     g.DrawString("震央", font_msD45, sb_text_sub, config.MapSize * 1.25f, 0);
-                    g.DrawString("999.9km\n深さ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
+                    g.DrawString("999.9km\n深さ ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
                     g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.602625f, 0);
                     g.DrawString("最大震度", font_msD45, sb_text_sub, config.MapSize * 1.675f, 0); g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
 
@@ -1087,7 +1087,7 @@ namespace JeqDB_Converter
             var newCsv = new List<string> { oldCsv[0] };
             newCsv.AddRange(oldCSvConverted.Select(
                 x => x.Time.ToString("yyyy/MM/dd,HH:mm:ss.ff") + "," + x.Hypo + "," + x.Lat + "," + x.Lon + "," + x.Depth + "," + x.Mag + "," + x.MaxInt));
-            File.WriteAllLines(path.Replace(".csv","_converted.csv"), newCsv);
+            File.WriteAllLines(path.Replace(".csv", "_converted.csv"), newCsv);
             ConWrite(path.Replace(".csv", "_converted.csv") + " に保存しました。");
         }
     }
