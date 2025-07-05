@@ -339,13 +339,13 @@ namespace JeqDB_Converter
                     }
                 }
                 var depthSize = g.MeasureString(texts[2].ToString(), font_msD45);//string Formatに必要
-                var depthHeadSize = g.MeasureString("999.9km\n", font_msD45);//最大幅計算用
+                var depthHeadSize = g.MeasureString("999.9km\n深さ ", font_msD45);//最大幅計算用
                 var oneLineHeight = g.MeasureString("999.9km", font_msD45).Height;//調整用
 
                 g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                 g.DrawString("発生日時", font_msD45, sb_text_sub, config.MapSize, 0);
                 g.DrawString("震央", font_msD45, sb_text_sub, config.MapSize * 1.25f, 0);
-                g.DrawString("999.9km\n深さ ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
+                g.DrawString("深さ \n   ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, 0), depthHeadSize), string_Right);
                 g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.602625f, 0);
                 g.DrawString("最大震度", font_msD45, sb_text_sub, config.MapSize * 1.675f, 0); g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
 
@@ -586,13 +586,13 @@ namespace JeqDB_Converter
                         }
                     }
                     var depthSize = g.MeasureString(texts[2].ToString(), font_msD45);//string Formatに必要
-                    var depthHeadSize = g.MeasureString("999.9km\n", font_msD45);//最大幅計算用
+                    var depthHeadSize = g.MeasureString("999.9km\n深さ ", font_msD45);//最大幅計算用
                     var oneLineHeight = g.MeasureString("999.9km", font_msD45).Height;//調整用
 
                     g.FillRectangle(new SolidBrush(color.InfoBack), config.MapSize, 0, bitmap.Width - config.MapSize, config.MapSize);
                     g.DrawString("発生日時", font_msD45, sb_text_sub, config.MapSize, 0);
                     g.DrawString("震央", font_msD45, sb_text_sub, config.MapSize * 1.25f, 0);
-                    g.DrawString("999.9km\n深さ ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, -oneLineHeight), depthHeadSize), string_Right);
+                    g.DrawString("深さ \n   ", font_msD45, sb_text_sub, new RectangleF(new PointF(config.MapSize * 1.5f, 0), depthHeadSize), string_Right);
                     g.DrawString("規模", font_msD45, sb_text_sub, config.MapSize * 1.602625f, 0);
                     g.DrawString("最大震度", font_msD45, sb_text_sub, config.MapSize * 1.675f, 0); g.DrawString(texts[0].ToString(), font_msD45, sb_text, config.MapSize, 0);
 
