@@ -116,6 +116,14 @@ namespace JeqDB_Converter
                 case "t":
                     ToTimetableCsv();
                     break;
+                case "m":
+                    var savePath = "output\\csv\\merge\\" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+                    var csv = MergeCsv([], false);
+                    Directory.CreateDirectory("output\\csv\\merge\\");
+                    File.WriteAllText(savePath, csv);
+                    ConWrite(savePath, ConsoleColor.Green);
+                    ConWrite("保存しました。");
+                    break;
                 default:
                     ConWrite("値が正しくありません。半角英数字で入力してください。");
                     goto reSelect;
@@ -1027,8 +1035,8 @@ namespace JeqDB_Converter
                     csv.Append(',');
                     csv.Append(quake.Earthquake.Hypocenter.Longitude == -200d ? "不明" : LatLonDouble2String(quake.Earthquake.Hypocenter.Longitude, false));
                     csv.Append(',');
-                    csv.Append(quake.Earthquake.Hypocenter.Depth == -1 ? "不明" : quake.Earthquake.Hypocenter.Depth == 0 ? "ごく浅い" : quake.Earthquake.Hypocenter.Depth);
-                    csv.Append(quake.Earthquake.Hypocenter.Depth <= 0 ? "," : " km,");
+                    csv.Append(quake.Earthquake.Hypocenter.Depth == -1 ? "不明" : quake.Earthquake.Hypocenter.Depth);
+                    csv.Append(quake.Earthquake.Hypocenter.Depth == -1 ? "," : " km,");
                     csv.Append(quake.Earthquake.Hypocenter.Magnitude == -1d ? "不明" : quake.Earthquake.Hypocenter.Magnitude);
                     csv.Append(',');
                     csv.Append(MaxIntP2PInt2String(quake.Earthquake.MaxScale));
@@ -1237,6 +1245,60 @@ namespace JeqDB_Converter
             {
                 ConWrite(ex);
             }
+        }
+
+        public static string MergeCsv(string[] files, bool existHead)
+        {
+            if (files.Length == 0)
+            {
+                ConWrite("結合するファイルのパスを1行ごとに入力してください。空文字が入力されたら結合を開始します。フォルダのパスを入力するとすべて読み込みます。");
+                List<string> filesTmp = [];
+                while (true)
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    var file = Console.ReadLine();
+                    if (!string.IsNullOrEmpty(file))
+                        filesTmp.Add(file.Replace("\"", ""));
+                    else if (filesTmp.Count == 0)
+                    {
+                        ConWrite("中止します。");
+                        return "";
+                    }
+                    else
+                        break;
+                }
+                files = [.. filesTmp];
+            }
+
+            var stringBuilder = new StringBuilder();
+            List<string> files2 = [];
+            foreach (var file in files)
+            {
+                var f = file.Replace("\"", "");
+                if (f.EndsWith(".csv"))
+                    files2.Add(f);
+                else
+                {
+                    ConWrite("ファイル名取得中... ", false);
+                    ConWrite(f, ConsoleColor.Green);
+                    var openPaths = Directory.EnumerateFiles(f, "*.csv", SearchOption.AllDirectories);
+                    foreach (var path in openPaths)
+                        files2.Add(path);
+                }
+            }
+            foreach (var file in files2)
+            {
+                if (File.Exists(file))
+                {
+                    ConWrite("読み込み中... ", false);
+                    ConWrite(file, ConsoleColor.Green);
+                    stringBuilder.Append(File.ReadAllText(file));//.Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
+                }
+                else
+                    ConWrite($"{file}が見つかりません。", ConsoleColor.Red);
+            }
+            //stringBuilder.Insert(0, "地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+            return stringBuilder.ToString();
         }
     }
 
