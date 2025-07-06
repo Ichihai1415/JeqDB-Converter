@@ -74,9 +74,10 @@ namespace JeqDB_Converter
             ConWrite("> 1.複数ファイルの結合");
             ConWrite("> 2.画像描画");
             ConWrite("> 3.動画作成");
-            ConWrite("> 4.csv取得");
+            ConWrite("> 4.震度データベース取得");
             ConWrite("> 5.震源リスト取得");
             ConWrite("> 6.震央分布取得");
+            ConWrite("> 7.P2P地震情報取得");
             ConWrite("> 0.終了");
 
         reSelect:
@@ -105,6 +106,9 @@ namespace JeqDB_Converter
                     break;
                 case "6":
                     GetEpi();
+                    break;
+                case "7":
+                    GetP2PQ();
                     break;
                 case "o":
                     ToOriginalCsv();
@@ -896,7 +900,7 @@ namespace JeqDB_Converter
                 var lines_converted = pre.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(2).Select(HypoText2EqdbData);
                 ConWrite($"データ個数: {lines_converted.Count()}", ConsoleColor.Green);
 
-                var csv = "地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n" + (string.Join('\n', lines_converted))
+                var csv = "地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n" + string.Join('\n', lines_converted)
                      .Replace(",- km,", ",不明,").Replace(",-,", ",不明,").Replace("'", "′")
                      .Replace("/1/", "/01/").Replace("/2/", "/02/").Replace("/3/", "/03/").Replace("/4/", "/04/").Replace("/5/", "/05/")//月調整
                      .Replace("/6/", "/06/").Replace("/7/", "/07/").Replace("/8/", "/08/").Replace("/9/", "/09/")
@@ -926,6 +930,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// 震源リスト1行のデータを震度データベース形式に変換します。
         /// </summary>
+        /// <remarks>不明データ等の置換はしないので変換後行ってください。</remarks>
         /// <param name="text">csv1行</param>
         /// <returns>震度データベース形式のデータ</returns>
         public static string HypoText2EqdbData(string text)
@@ -972,13 +977,65 @@ namespace JeqDB_Converter
                     csv.Append(LatLonDouble2String(feature.Geometry.Coordinates[0], false));
                     csv.Append(',');
                     csv.Append(feature.Properties.Dep == "" ? "不明" : feature.Properties.Dep);//ないかも
-                    csv.Append(" km,");
+                    csv.Append(feature.Properties.Dep == "" ? "," : " km, ");
                     csv.Append(feature.Properties.Mag == "" ? "不明" : feature.Properties.Mag);
                     csv.Append(",---");
                     csv.AppendLine();
                 }
 
                 Directory.CreateDirectory("output\\csv\\epi");
+                File.WriteAllText(savePath, csv.ToString());
+                ConWrite(savePath, ConsoleColor.Green);
+                ConWrite("保存しました。");
+            }
+            catch (Exception ex)
+            {
+#if DEBUG
+                ConWrite("エラーが発生しました。" + ex + "\n再度実行してください。", ConsoleColor.Red);
+#else
+                ConWrite("エラーが発生しました。" + ex.Message + " 再度実行してください。", ConsoleColor.Red);
+#endif                
+            }
+
+        }
+
+        /// <summary>
+        /// 震央分布(無感含む)を震度データベース互換に変換
+        /// </summary>
+        /// <remarks>気象庁内部APIを利用します。震度は---になります。</remarks>
+        public static void GetP2PQ()
+        {
+            try
+            {
+                ConWrite("P2P地震情報APIの気象庁 地震情報・津波予報 JSON API /jma/quake(地震情報リスト)(https://www.p2pquake.net/develop/json_api_v2/#/%E6%B0%97%E8%B1%A1%E5%BA%81%20%E5%9C%B0%E9%9C%87%E6%83%85%E5%A0%B1%E3%83%BB%E6%B4%A5%E6%B3%A2%E4%BA%88%E5%A0%B1%20JSON%20API/get_jma_quake)を利用してを震度データベース互換に変換します。前日～当日の有感地震の取得にお勧めです。保存後に複数ファイルの結合をすることで震度データベースのものと一緒に描画できます(同一地震判定はしません)。最大100件までとなるので注意してください(offsetを利用してください)。");
+                var url = (string)UserInput("取得するURLを入力してください。詳細は上記リンクを参照してください(Try it outを押して入力し、Executeを押してRequest URLをコピーしてください)。quake_typeはDetailScaleにしてください。\n例: 指定日から最新100件: https://api.p2pquake.net/v2/jma/quake?limit=100&since_date=20250101&quake_type=DetailScale \n    指定日から指定日まで新しい順101~200番目: https://api.p2pquake.net/v2/jma/quake?limit=100&offset=100&since_date=20250101&until_date=20250131&quake_type=DetailScale \n    テンプレ: https://api.p2pquake.net/v2/jma/quake?quake_type=DetailScale&limit=100&since_date=&until_date=&offset=", typeof(string));
+                ConWrite("取得中...");
+                var jsonSt = client.GetStringAsync(url).Result;
+                ConWrite("解析中...");
+                var json = JsonSerializer.Deserialize<P2PQuakeV2_JMAQuake[]>(jsonSt)!;
+                ConWrite($"データ個数 : {json.Length}", ConsoleColor.Green);
+                var csv = new StringBuilder("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+                var savePath = "output\\csv\\p2pq\\" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+                foreach (var quake in json)
+                {
+                    var dateSts = quake.ToString();
+                    csv.Append(quake.Earthquake.Time.Replace(" ", ","));
+                    csv.Append(',');
+                    csv.Append(quake.Earthquake.Hypocenter.Name == "" ? "不明" : quake.Earthquake.Hypocenter.Name);
+                    csv.Append(',');
+                    csv.Append(quake.Earthquake.Hypocenter.Latitude == -200d ? "不明" : LatLonDouble2String(quake.Earthquake.Hypocenter.Latitude, true));
+                    csv.Append(',');
+                    csv.Append(quake.Earthquake.Hypocenter.Longitude == -200d ? "不明" : LatLonDouble2String(quake.Earthquake.Hypocenter.Longitude, false));
+                    csv.Append(',');
+                    csv.Append(quake.Earthquake.Hypocenter.Depth == -1 ? "不明" : quake.Earthquake.Hypocenter.Depth == 0 ? "ごく浅い" : quake.Earthquake.Hypocenter.Depth);
+                    csv.Append(quake.Earthquake.Hypocenter.Depth <= 0 ? "," : " km,");
+                    csv.Append(quake.Earthquake.Hypocenter.Magnitude == -1d ? "不明" : quake.Earthquake.Hypocenter.Magnitude);
+                    csv.Append(',');
+                    csv.Append(MaxIntP2PInt2String(quake.Earthquake.MaxScale));
+                    csv.AppendLine();
+                }
+
+                Directory.CreateDirectory("output\\csv\\p2pq");
                 File.WriteAllText(savePath, csv.ToString());
                 ConWrite(savePath, ConsoleColor.Green);
                 ConWrite("保存しました。");
@@ -1076,92 +1133,110 @@ namespace JeqDB_Converter
 
         public static void ToOriginalCsv()
         {
-            var path = (string)UserInput("元csvファイルのパスを入力してください。生成ファイルは$\"{ファイル名}+_converted.csv\"となります。", typeof(string));
-            var oldCsv = File.ReadAllLines(path);
-            var oldCSvConverted = oldCsv.Skip(1).Select(Text2Data);
-            var newCsv = new List<string> { oldCsv[0] };
-            newCsv.AddRange(oldCSvConverted.Select(
-                x => x.Time.ToString("yyyy/MM/dd,HH:mm:ss.ff") + "," + x.Hypo + "," + x.Lat + "," + x.Lon + "," + x.Depth + "," + x.Mag + "," + x.MaxInt));
-            File.WriteAllLines(path.Replace(".csv", "_converted.csv"), newCsv);
-            ConWrite(path.Replace(".csv", "_converted.csv") + " に保存しました。");
+            try
+            {
+                var path = (string)UserInput("元csvファイルのパスを入力してください。生成ファイルは$\"{ファイル名}+_converted.csv\"となります。", typeof(string));
+                var oldCsv = File.ReadAllLines(path);
+                var oldCSvConverted = oldCsv.Skip(1).Select(Text2Data);
+                var newCsv = new List<string> { oldCsv[0] };
+                newCsv.AddRange(oldCSvConverted.Select(
+                    x => x.Time.ToString("yyyy/MM/dd,HH:mm:ss.ff") + "," + x.Hypo + "," + x.Lat + "," + x.Lon + "," + x.Depth + "," + x.Mag + "," + x.MaxInt));
+                var savePath = path.Replace(".csv", "_converted.csv");
+                File.WriteAllLines(savePath, newCsv);
+                ConWrite(savePath, ConsoleColor.Green);
+                ConWrite("保存しました。");
+            }
+            catch (Exception ex)
+            {
+                ConWrite(ex);
+            }
         }
 
         public static void ToTimetableCsv()
         {
-            ConWrite("読み込むcsvファイルのパスを入力してください。複数読み込む場合は\\だけ入力してください。");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            var path = Console.ReadLine() ?? "";
-            var datas_ = path == "\\" ? MergeFiles([]).Replace("\r", "").Split('\n') : File.ReadAllLines(path.Replace("\"", ""));//gitで触ると\r付く？
-
-            var startDate = (DateTime)UserInput("開始日を入力してください。時刻は含めないでください。例:2025/01/01", typeof(DateTime));
-            var endDate = ((DateTime)UserInput("終了日を入力してください。この日の23時台までとなります。例:2025/06/30", typeof(DateTime))).AddDays(1);
-            var latSta = (double)UserInput("絞り込む場合、緯度の始点(地図の下端)を入力してください。例:0", typeof(double), "0");
-            var latEnd = (double)UserInput("絞り込む場合、緯度の終点(地図の上端)を入力してください。例:90", typeof(double), "90");
-            var lonSta = (double)UserInput("絞り込む場合、経度の始点(地図の左端)を入力してください。例:0", typeof(double), "0");
-            var lonEnd = (double)UserInput("絞り込む場合、経度の終点(地図の右端)を入力してください。例:180", typeof(double), "180");
-            var col = (int)UserInput("1時間当たり最大数を入力してください。例:50", typeof(int), "50");
-            //var deleteUnknow = (bool)UserInput("不明データをを除外しますか？", typeof(bool), "n");//todo:深さのみとかできるよう//これここでは使わんわ
-
-            IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x => !x.Contains("不明データ")).Select(Text2Data)
-                .Where(d => d.Lat >= latSta && d.Lat <= latEnd && d.Lon >= lonSta && d.Lon <= lonEnd).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
-
-            var csv = new StringBuilder("date,hour,");
-            var types = new string[] { "min:", "int:", "mag:" };
-            for (var t = 0; t < types.Length; t++)
+            try
             {
-                csv.Append(types[t]);
-                csv.Append(',');
-                for (int i = 0; i < col; i++)
-                {
-                    csv.Append("--,");
-                }
-            }
-            csv.AppendLine();
+                ConWrite("読み込むcsvファイルのパスを入力してください。複数読み込む場合は\\だけ入力してください。");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                var path = Console.ReadLine() ?? "";
+                var datas_ = path == "\\" ? MergeFiles([]).Replace("\r", "").Split('\n') : File.ReadAllLines(path.Replace("\"", ""));//gitで触ると\r付く？
 
-            for (var dt = startDate; dt < endDate; dt += TimeSpan.FromHours(1))
-            {
-                //dtより前のは削除、dt+1h未満を追加
-                datas = [.. datas.SkipWhile(data => data.Time < dt)];//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
-                var datas_add = datas.Where(data => data.Time < dt + TimeSpan.FromHours(1)).ToArray();//抜き出し
-                if (dt.Hour == 0)
-                {
-                    csv.Append(dt.Month);
-                    csv.Append('/');
-                    csv.Append(dt.Day);
-                }
-                csv.Append(',');
+                var startDate = (DateTime)UserInput("開始日を入力してください。時刻は含めないでください。例:2025/01/01", typeof(DateTime));
+                var endDate = ((DateTime)UserInput("終了日を入力してください。この日の23時台までとなります。例:2025/06/30", typeof(DateTime))).AddDays(1);
+                var latSta = (double)UserInput("絞り込む場合、緯度の始点(地図の下端)を入力してください。例:0", typeof(double), "0");
+                var latEnd = (double)UserInput("絞り込む場合、緯度の終点(地図の上端)を入力してください。例:90", typeof(double), "90");
+                var lonSta = (double)UserInput("絞り込む場合、経度の始点(地図の左端)を入力してください。例:0", typeof(double), "0");
+                var lonEnd = (double)UserInput("絞り込む場合、経度の終点(地図の右端)を入力してください。例:180", typeof(double), "180");
+                var col = (int)UserInput("1時間当たり最大数を入力してください。例:50", typeof(int), "50");
+                //var deleteUnknow = (bool)UserInput("不明データをを除外しますか？", typeof(bool), "n");//todo:深さのみとかできるよう//これここでは使わんわ
 
-                csv.Append(dt.Hour);
-                csv.Append(",|,");
+                IEnumerable<Data> datas = datas_.Where(x => x.Contains('°')).Where(x => !x.Contains("不明データ")).Select(Text2Data)
+                    .Where(d => d.Lat >= latSta && d.Lat <= latEnd && d.Lon >= lonSta && d.Lon <= lonEnd).OrderBy(a => a.Time);//データじゃないやつついでに緯度経度ないやつも除外
 
+                var csv = new StringBuilder("date,hour,");
+                var types = new string[] { "min:", "int:", "mag:" };
                 for (var t = 0; t < types.Length; t++)
                 {
-                    for (var i = 0; i < col; i++)
+                    csv.Append(types[t]);
+                    csv.Append(',');
+                    for (int i = 0; i < col; i++)
                     {
-                        if (datas_add.Length > i)
-                            switch (t)
-                            {
-                                case 0:
-                                    csv.Append(datas_add[i].Time.Minute);
-                                    break;
-                                case 1:
-                                    csv.Append(datas_add[i].MaxInt);
-                                    break;
-                                case 2:
-                                    csv.Append(double.IsNaN(datas_add[i].Mag) ? "-9" : datas_add[i].Mag);
-                                    break;
-                            }
-                        csv.Append(',');
+                        csv.Append("--,");
                     }
-                    csv.Append('|');
-                    if (t != types.Length - 1)
-                        csv.Append(',');
                 }
                 csv.AppendLine();
+
+                for (var dt = startDate; dt < endDate; dt += TimeSpan.FromHours(1))
+                {
+                    //dtより前のは削除、dt+1h未満を追加
+                    datas = [.. datas.SkipWhile(data => data.Time < dt)];//除外//SkipWhileなので.OrderBy(a => a.Time)で並び替えられていることが必要
+                    var datas_add = datas.Where(data => data.Time < dt + TimeSpan.FromHours(1)).ToArray();//抜き出し
+                    if (dt.Hour == 0)
+                    {
+                        csv.Append(dt.Month);
+                        csv.Append('/');
+                        csv.Append(dt.Day);
+                    }
+                    csv.Append(',');
+
+                    csv.Append(dt.Hour);
+                    csv.Append(",|,");
+
+                    for (var t = 0; t < types.Length; t++)
+                    {
+                        for (var i = 0; i < col; i++)
+                        {
+                            if (datas_add.Length > i)
+                                switch (t)
+                                {
+                                    case 0:
+                                        csv.Append(datas_add[i].Time.Minute);
+                                        break;
+                                    case 1:
+                                        csv.Append(datas_add[i].MaxInt);
+                                        break;
+                                    case 2:
+                                        csv.Append(double.IsNaN(datas_add[i].Mag) ? "-9" : datas_add[i].Mag);
+                                        break;
+                                }
+                            csv.Append(',');
+                        }
+                        csv.Append('|');
+                        if (t != types.Length - 1)
+                            csv.Append(',');
+                    }
+                    csv.AppendLine();
+                }
+                var savePath = "output\\csv\\tt\\" + startDate.ToString("yyyyMMdd") + "-" + endDate.AddDays(-1).ToString("MMdd") + "." + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv";
+                Directory.CreateDirectory("output\\csv\\tt");
+                File.WriteAllText(savePath, csv.ToString());
+                ConWrite(savePath, ConsoleColor.Green);
+                ConWrite("保存しました。");
             }
-            Directory.CreateDirectory("output\\csv\\tt");
-            File.WriteAllText("output\\csv\\tt\\" + startDate.ToString("yyyyMMdd") + "-" + endDate.AddDays(-1).ToString("MMdd") + "." + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv", csv.ToString());
-            ConWrite("output\\csv\\tt\\" + startDate.ToString("yyyyMMdd") + "-" + endDate.AddDays(-1).ToString("MMdd") + "." + DateTime.Now.ToString("yyyyMMddHHmmss") + ".csv に保存しました。");
+            catch (Exception ex)
+            {
+                ConWrite(ex);
+            }
         }
     }
 

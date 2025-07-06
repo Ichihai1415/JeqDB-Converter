@@ -110,6 +110,30 @@ namespace JeqDB_Converter
         }
 
         /// <summary>
+        /// string形式の震度をstring形式にします。
+        /// </summary>
+        /// <param name="maxInt">震度</param>
+        /// <returns>int形式の震度(1~9)</returns>
+        /// <exception cref="ArgumentException">値が不正の時</exception>
+        public static string MaxIntP2PInt2String(int maxInt)
+        {
+            return maxInt switch
+            {
+                -1 => "---",
+                10 => "震度１",
+                20 => "震度２",
+                30 => "震度３",
+                40 => "震度４",
+                45 => "震度５弱",
+                50 => "震度５強",
+                55 => "震度６弱",
+                60 => "震度６強",
+                70 => "震度７",
+                _ => throw new ArgumentException("震度の変換に失敗しました。", nameof(maxInt)),
+            };
+        }
+
+        /// <summary>
         /// int形式の震度をstring形式にします。
         /// </summary>
         /// <param name="maxInt">震度(1~9)</param>
@@ -444,4 +468,120 @@ namespace JeqDB_Converter
             }
         }
     }
+
+    public class P2PQuakeV2_JMAQuake
+    {
+        [JsonPropertyName("code")]
+        public required int Code { get; set; }
+
+        [JsonPropertyName("comments")]
+        public required C_Comments Comments { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public required string CreatedAt { get; set; }
+
+        [JsonPropertyName("earthquake")]
+        public required C_Earthquake Earthquake { get; set; }
+
+        [JsonPropertyName("id")]
+        public required string Id { get; set; }
+
+        [JsonPropertyName("issue")]
+        public required C_Issue Issue { get; set; }
+
+        [JsonPropertyName("points")]
+        public required C_Point[] Points { get; set; }
+
+        [JsonPropertyName("time")]
+        public required string Time { get; set; }
+
+        [JsonPropertyName("timestamp")]
+        public required C_Timestamp Timestamp { get; set; }
+
+        [JsonPropertyName("user_agent")]
+        public required string UserAgent { get; set; }
+
+        [JsonPropertyName("ver")]
+        public required string Ver { get; set; }
+
+        public class C_Comments
+        {
+            [JsonPropertyName("freeFormComment")]
+            public required string FreeFormComment { get; set; }
+        }
+        public class C_Earthquake
+        {
+            [JsonPropertyName("domesticTsunami")]
+            public required string DomesticTsunami { get; set; }
+
+            [JsonPropertyName("foreignTsunami")]
+            public required string ForeignTsunami { get; set; }
+
+            [JsonPropertyName("hypocenter")]
+            public required C_Hypocenter Hypocenter { get; set; }
+
+            [JsonPropertyName("maxScale")]
+            public required int MaxScale { get; set; }
+
+            [JsonPropertyName("time")]
+            public required string Time { get; set; }
+            public class C_Hypocenter
+            {
+                [JsonPropertyName("depth")]
+                public required int Depth { get; set; }
+
+                [JsonPropertyName("latitude")]
+                public required double Latitude { get; set; }
+
+                [JsonPropertyName("longitude")]
+                public required double Longitude { get; set; }
+
+                [JsonPropertyName("magnitude")]
+                public required double Magnitude { get; set; }
+
+                [JsonPropertyName("name")]
+                public required string Name { get; set; }
+            }
+        }
+
+        public class C_Issue
+        {
+            [JsonPropertyName("correct")]
+            public required string Correct { get; set; }
+
+            [JsonPropertyName("source")]
+            public required string Source { get; set; }
+
+            [JsonPropertyName("time")]
+            public required string Time { get; set; }
+
+            [JsonPropertyName("type")]
+            public required string Type { get; set; }
+        }
+
+        public class C_Point
+        {
+            [JsonPropertyName("addr")]
+            public required string Addr { get; set; }
+
+            [JsonPropertyName("isArea")]
+            public required bool IsArea { get; set; }
+
+            [JsonPropertyName("pref")]
+            public required string Pref { get; set; }
+
+            [JsonPropertyName("scale")]
+            public required int Scale { get; set; }
+        }
+
+        public class C_Timestamp
+        {
+            [JsonPropertyName("convert")]
+            public required string Convert { get; set; }
+
+            [JsonPropertyName("register")]
+            public required string Register { get; set; }
+        }
+    }
+
 }
