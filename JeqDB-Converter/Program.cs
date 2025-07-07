@@ -985,7 +985,7 @@ namespace JeqDB_Converter
                     csv.Append(LatLonDouble2String(feature.Geometry.Coordinates[0], false));
                     csv.Append(',');
                     csv.Append(feature.Properties.Dep == "" ? "不明" : feature.Properties.Dep);//ないかも
-                    csv.Append(feature.Properties.Dep == "" ? "," : " km, ");
+                    csv.Append(feature.Properties.Dep == "" ? "," : " km,");
                     csv.Append(feature.Properties.Mag == "" ? "不明" : feature.Properties.Mag);
                     csv.Append(",---");
                     csv.AppendLine();
