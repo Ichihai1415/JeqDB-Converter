@@ -166,28 +166,29 @@ namespace JeqDB_Converter
         {
             var d = depth == null ? 0d : (double)depth;
             if (d < 0) d = 0;
+            Console.WriteLine(depth + "-" + d);
             //震度データベースjsより
             var l = 50d;
             var h = 0d;
-            if (depth <= 10)
+            if (d <= 10)
                 l = 50 - 25d * ((10d - d) / 10d);
-            else if (depth <= 20)
+            else if (d <= 20)
                 h = 30d * ((d - 10d) / 10d);
-            else if (depth <= 30)
+            else if (d <= 30)
                 h = 30d + 30d * ((d - 20d) / 10d);
-            else if (depth <= 50)
+            else if (d <= 50)
                 h = 60d;
-            else if (depth <= 100)
+            else if (d <= 100)
             {
                 h = 60d + 60d * ((d - 50d) / 50d);
                 l = 50d + 25d * ((50d - d) / 100d);
             }
-            else if (depth <= 200)
+            else if (d <= 200)
             {
                 h = 120d + 90d * ((d - 100d) / 100d);
                 l = 25d - 30d * ((100d - d) / 100d);
             }
-            else if (depth <= 700)
+            else if (d <= 700)
             {
                 h = 210d + 30d * ((d - 200d) / 500d);
                 l = 55d + 30d * ((200d - d) / 500d);
