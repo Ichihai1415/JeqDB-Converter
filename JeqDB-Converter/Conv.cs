@@ -166,7 +166,7 @@ namespace JeqDB_Converter
         {
             var d = depth == null ? 0d : (double)depth;
             if (d < 0) d = 0;
-            Console.WriteLine(depth + "-" + d);
+            //Console.WriteLine(depth + "-" + d);
             //震度データベースjsより
             var l = 50d;
             var h = 0d;
