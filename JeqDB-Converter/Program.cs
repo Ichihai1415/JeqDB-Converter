@@ -72,7 +72,6 @@ namespace JeqDB_Converter
         restart:
             ConWrite("モードを入力してください。");
             ConWrite("> 1.複数ファイルの結合");
-            ConWrite("> 1-2.複数ファイルの結合2 (NewVer: フォルダ対応)");
             ConWrite("> 2.画像描画");
             ConWrite("> 3.動画作成");
             ConWrite("> 4.震度データベース取得");
@@ -92,9 +91,6 @@ namespace JeqDB_Converter
                     break;
                 case "1":
                     MergeFiles();
-                    break;
-                case "1-2":
-                    MergeFiles([]);
                     break;
                 case "2":
                     DrawImage2();
@@ -141,36 +137,7 @@ namespace JeqDB_Converter
         /// </summary>
         public static void MergeFiles()
         {
-            ConWrite("結合するファイルのパスを1行ごとに入力してください。空文字が入力されたら結合を開始します。フォルダのパスを入力するとすべて読み込みます。※観測震度検索をしているものとしていないものの結合はできますが他ソフトで処理をする際エラーとなる可能性があります。このソフトでは問題ありません。");
-            List<string> files = [];
-            while (true)
-            {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                var file = Console.ReadLine();
-                if (!string.IsNullOrEmpty(file))
-                    files.Add(file.Replace("\"", ""));
-                else if (files.Count < 2)
-                {
-                    ConWrite("中止します。");
-                    return;
-                }
-                else
-                    break;
-            }
-
-            var stringBuilder = new StringBuilder();
-            foreach (var file in files)
-            {
-                if (File.Exists(file))
-                {
-                    ConWrite("読み込み中... ", false);
-                    ConWrite(file, ConsoleColor.Green);
-                    stringBuilder.Append(File.ReadAllText(file).Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
-                }
-                else
-                    ConWrite($"{file}が見つかりません。", ConsoleColor.Red);
-            }
-            stringBuilder.Insert(0, "地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n");
+            var newCsv = MergeFiles([]);
             ConWrite("読み込みました。保存するパスを入力してください。すでにある場合上書きされます。");
             while (true)
             {
@@ -178,7 +145,7 @@ namespace JeqDB_Converter
                 string path = Console.ReadLine() ?? "";
                 try
                 {
-                    File.WriteAllText(path.Replace("\"", ""), stringBuilder.ToString());
+                    File.WriteAllText(path.Replace("\"", ""), newCsv);
                     break;
                 }
                 catch (Exception ex)
