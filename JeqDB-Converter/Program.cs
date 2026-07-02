@@ -72,6 +72,7 @@ namespace JeqDB_Converter
         restart:
             ConWrite("モードを入力してください。");
             ConWrite("> 1.複数ファイルの結合");
+            ConWrite("> 1-2.複数ファイルの結合2 (NewVer: フォルダ対応)");
             ConWrite("> 2.画像描画");
             ConWrite("> 3.動画作成");
             ConWrite("> 4.震度データベース取得");
@@ -91,6 +92,9 @@ namespace JeqDB_Converter
                     break;
                 case "1":
                     MergeFiles();
+                    break;
+                case "1-2":
+                    MergeFiles([]);
                     break;
                 case "2":
                     DrawImage2();
