@@ -208,7 +208,10 @@ namespace JeqDB_Converter
                 {
                     ConWrite("読み込み中... ", false);
                     ConWrite(file, ConsoleColor.Green);
-                    stringBuilder.Append(File.ReadAllText(file).Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
+                    var tx = File.ReadAllText(file);
+                    if (!tx.EndsWith("\n"))
+                        tx += "\n";
+                    stringBuilder.Append(tx.Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
                 }
                 else
                     ConWrite($"{file}が見つかりません。", ConsoleColor.Red);
@@ -888,7 +891,7 @@ namespace JeqDB_Converter
                      .Replace(":1.", ":01.").Replace(":2.", ":02.").Replace(":3.", ":03.").Replace(":4.", ":04.").Replace(":5.", ":05.")//秒調整
                      .Replace(":6.", ":06.").Replace(":7.", ":07.").Replace(":8.", ":08.").Replace(":9.", ":09.").Replace(":0.", ":00.")
                      .Replace("°1.", "°01.").Replace("°2.", "°02.").Replace("°3.", "°03.").Replace("°4.", "°04.").Replace("°5.", "°05.")//緯度経度分調整
-                     .Replace("°6.", "°06.").Replace("°7.", "°07.").Replace("°8.", "°08.").Replace("°9.", "°09.").Replace("°0.", "°00.");
+                     .Replace("°6.", "°06.").Replace("°7.", "°07.").Replace("°8.", "°08.").Replace("°9.", "°09.").Replace("°0.", "°00.") + "\n";
                 var savePath = "output\\csv\\hypo\\" + date.ToString("yyyyMMdd") + ".csv";
 
                 Directory.CreateDirectory("output\\csv\\hypo");
