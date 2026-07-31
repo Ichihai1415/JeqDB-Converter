@@ -210,20 +210,21 @@ n <= 700 ? (t = 210 + 30 * ((n - 200) / 500), i = 55 + 30 * ((200 - n) / 500)) :
              */
             /* hypLeg.svg コメントアウトされた色がある(50km,100km)
 <linearGradient id="grad2"  x1="100" y1="100" x2="380" y2="100" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
-  <stop  offset="0%" stop-color="#800000" />
-  <stop  offset="14.3%" stop-color="#ff0000"/>
-  <stop  offset="28.5%" stop-color="#ff8c00"/>
-  <stop  offset="42.9%" stop-color="#ffff00"/>
-  <stop  offset="57.1%" stop-color="#ffff00"/>
-  <stop  offset="71.4%" stop-color="#008000"/>
+  <stop  offset="0%" stop-color="#800000" />   0, 100, 25
+  <stop  offset="14.3%" stop-color="#ff0000"/> 0, 100, 50
+  <stop  offset="28.5%" stop-color="#ff8c00"/> 33, 100, 50
+  <stop  offset="42.9%" stop-color="#ffff00"/> 60, 100, 50
+  <stop  offset="57.1%" stop-color="#ffff00"/> 60, 100, 50
+  <stop  offset="71.4%" stop-color="#008000"/> 120, 100, 25
   <!--
-  <stop  offset="57.1%" stop-color="#00ff00"/>
-  <stop  offset="71.4%" stop-color="#008000"/>
+  <stop  offset="57.1%" stop-color="#00ff00"/> 120, 100, 50
+  <stop  offset="71.4%" stop-color="#008000"/> 120, 100, 25
   -->
-  <stop  offset="85.7%" stop-color="#1e90ff"/>
-  <stop  offset="100%" stop-color="#00008b"/>
+  <stop  offset="85.7%" stop-color="#1e90ff"/> 210, 100, 56
+  <stop  offset="100%" stop-color="#00008b"/>  240, 100, 27
 </linearGradient>
              */
+            var useSecretColor = false;//仮
             var l = 50d;
             var h = 0d;
             if (d <= lv.L1)
@@ -233,10 +234,16 @@ n <= 700 ? (t = 210 + 30 * ((n - 200) / 500), i = 55 + 30 * ((200 - n) / 500)) :
             else if (d <= lv.L3)
                 h = 30d + 30d * ((d - lv.L2) / (lv.L3 - lv.L2));
             else if (d <= lv.L4)
-                h = 60d;
+                if (useSecretColor)
+                    h = 60d + 60d * ((d - lv.L3) / (lv.L4 - lv.L3));
+                else
+                    h = 60d;
             else if (d <= lv.L5)
             {
-                h = 60d + 60d * ((d - lv.L4) / (lv.L5 - lv.L4));
+                if (useSecretColor)
+                    h = 120d;
+                else
+                    h = 60d + 60d * ((d - lv.L4) / (lv.L5 - lv.L4));
                 l = 50d + 25d * ((lv.L4 - d) / (lv.L5 - lv.L4));//jsではミス？で/100= /lv.L5 - lv.L4)/2 or /(lv.L6 - lv.L5))になってる
             }
             else if (d <= lv.L6)
