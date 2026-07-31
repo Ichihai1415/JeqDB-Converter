@@ -1,4 +1,5 @@
 ﻿using AngleSharp.Html.Parser;
+using Ichihai1415.GeoJSON;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -35,6 +36,22 @@ namespace JeqDB_Converter
         /// </summary>
         public static readonly JsonSerializerOptions jsonOption = new() { WriteIndented = true };
 
+        public static GeoJSONScheme.GeoJSON_JMA_FaultDL? fault = null;
+
+        /*
+2
+1
+output\csv\hypo\20260728-30.csv
+4320
+32.2
+32.8
+130.3
+130.9
+11
+-1
+y
+
+         */
         static void Main()//todo:何か特殊文字入力で中止
         {
             //debug
@@ -57,6 +74,14 @@ namespace JeqDB_Converter
             if (File.Exists("colors.json"))
                 color = JsonSerializer.Deserialize<Config_Color>(File.ReadAllText("colors.json"), jsonOption) ?? new Config_Color();
             File.WriteAllText("colors.json", JsonSerializer.Serialize(color, jsonOption));
+
+            if (File.Exists("faultDL.geojson"))
+            {
+                var faultRaw = File.ReadAllText(@"D:\Ichihai1415\data\jma\webapi\faultDL.geojson");//https://www.jma.go.jp/bosai/hypo/const/faultDL.geojson
+                fault = JsonSerializer.Deserialize<GeoJSONScheme.GeoJSON_JMA_FaultDL>(faultRaw, GeoJSONHelper.ORIGINAL_GEOMETRY_SERIALIZER_OPTIONS_SAMPLE);
+            }
+
+
             ConWrite("" +
                 "|\n" +
                 "|\n" +
@@ -761,12 +786,14 @@ namespace JeqDB_Converter
                     maps.AddPolygon(points);
             }
             g.FillPath(new SolidBrush(color.Map.World), maps);
-
-            json = JsonNode.Parse(File.ReadAllText("map-jp.geojson")) ?? throw new Exception("マップデータの読み込みに失敗しました。");
+            //仮
+            json = JsonNode.Parse(File.ReadAllText(File.Exists("map-jp2.geojson") ? "map-jp2.geojson" : "map-jp.geojson") ?? throw new Exception("マップデータの読み込みに失敗しました。"));
             maps.Reset();
             maps.StartFigure();
             foreach (var json_1 in json["features"]!.AsArray())
             {
+                if (json_1!["geometry"] == null)
+                    continue;
                 if ((string?)json_1!["geometry"]!["type"] == "Polygon")
                 {
                     var points = json_1["geometry"]!["coordinates"]![0]!.AsArray().Select(json_2 => new Point((int)(((double)json_2![0]! - config.LonSta) * zoomW), (int)((config.LatEnd - (double)json_2[1]!) * zoomH))).ToArray();
@@ -787,6 +814,83 @@ namespace JeqDB_Converter
             g.DrawPath(new Pen(color.Map.Japan_Border, config.MapSize / 1080f), maps);
             //var mdsize = g.MeasureString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel));
             //g.DrawString("地図データ:気象庁, Natural Earth", new Font(font, config.MapSize / 28, GraphicsUnit.Pixel), new SolidBrush(color.Text), config.MapSize - mdsize.Width, config.MapSize - mdsize.Height);
+
+            if (fault != null)//仮
+            {
+                foreach (var feature in fault.Features)
+                {
+                    // 活断層における今後30年以内の地震発生確率が3%以上を「Ｓランク」、0.1～3％未満を「Ａランク」、0.1%未満を「Ｚランク」、不明（すぐに地震が
+                    // 起きることが否定できない）を「Ｘランク」と表記している。地震後経過率（注2）が0.7以上である活断層については、ランクに「＊」を付記してい
+                    // る。Ｚランクでも、活断層が存在すること自体、当該地域で大きな地震が発生する可能性を示す。
+                    /*
+                    faultCsv.Append(feature.Properties.Id);
+                    faultCsv.Append(',');
+                    faultCsv.Append(feature.Properties.Name);
+                    faultCsv.Append(',');
+                    faultCsv.Append(feature.Properties.Name1);
+                    faultCsv.Append(',');
+                    faultCsv.Append(feature.Properties.Active);
+                    faultCsv.Append(',');
+                    faultCsv.Append(feature.Properties.Size);
+                    faultCsv.Append(',');
+                    faultCsv.Append(feature.Properties.Rank);
+                    faultCsv.AppendLine();
+                    */
+                    var rankSt = feature.Properties.Rank;
+                    var rankId = -1;
+                    switch (rankSt.Split("として").Last().Replace('（', '(').Split('(')[0])//中南部としてA*ランク　くらいしかないけど　複数ケースは1を利用 なぜか全角半角かっこあるので統一
+                    {
+                        //複数ケース例: https://www.jishin.go.jp/regional_seismicity/rs_katsudanso/f103_muikamachi/　https://www.jishin.go.jp/regional_seismicity/rs_katsudanso/shinji/
+                        case "Sランク":
+                        case "S*ランク":
+                            rankId = 1;
+                            break;
+                        case "Aランク":
+                        case "A*ランク":
+                            rankId = 2;
+                            break;
+                        case "Zランク":
+                            rankId = 3;
+                            break;
+                        case "Xランク":
+                            rankId = 4;
+                            break;
+                        case "-":
+                        case "単独で震源断層となることはないと推定":
+                            rankId = 5;
+                            break;
+                    }
+                    foreach (var singleObject in feature.Geometry.Coordinates.Objects)
+                    {
+                        var points = singleObject.MainPoints.Select(coordinate => new PointF((float)((coordinate.Lon - config.LonSta) * zoomW), (float)((config.LatEnd - coordinate.Lat) * zoomH)));
+                        if (points.Count() > 2)
+                            switch (rankId)
+                            {
+                                case 1:
+                                    g.DrawLines(new Pen(Color.Red, config.MapSize / 1080f), points.ToArray());
+                                    break;
+                                case 2:
+                                    g.DrawLines(new Pen(Color.Yellow, config.MapSize / 1080f), points.ToArray());
+                                    break;
+                                case 3:
+                                    g.DrawLines(new Pen(Color.Wheat, config.MapSize / 1080f), points.ToArray());
+                                    break;
+                                case 4:
+                                    g.DrawLines(new Pen(Color.Gray, config.MapSize / 1080f), points.ToArray());
+                                    break;
+                                case 5:
+                                    g.DrawLines(new Pen(Color.LightGray, config.MapSize / 1080f), points.ToArray());
+                                    break;
+                                default:
+                                    g.DrawLines(new Pen(Color.White, config.MapSize / 1080f), points.ToArray());
+                                    break;
+
+                            }
+                    }
+                }
+            }
+
+
             g.Dispose();
             return mapImg;
         }

@@ -55,6 +55,7 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.6.0" />
+    <PackageReference Include="Ichihai1415.GeoJSON" Version="1.0.5" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.10" />
   </ItemGroup>
 
