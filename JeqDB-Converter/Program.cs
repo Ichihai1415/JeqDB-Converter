@@ -209,7 +209,7 @@ namespace JeqDB_Converter
                     ConWrite("読み込み中... ", false);
                     ConWrite(file, ConsoleColor.Green);
                     var tx = File.ReadAllText(file);
-                    if (!tx.EndsWith("\n"))
+                    if (!tx.EndsWith('\n'))
                         tx += "\n";
                     stringBuilder.Append(tx.Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度,検索対象最大震度\n", "").Replace("地震の発生日,地震の発生時刻,震央地名,緯度,経度,深さ,Ｍ,最大震度\n", ""));
                 }
@@ -228,7 +228,7 @@ namespace JeqDB_Converter
         /// <summary>
         /// 右下深さ凡例値
         /// </summary>
-        public static readonly int[] LEGEND_DEP_EX = [0, 10, 20, 30, 50, 100, 300, 700];
+        public static int[] LEGEND_DEP_EX = [0, 10, 20, 30, 50, 100, 300, 700];
 
         /// <summary>
         /// 右下マグニチュード凡例用(21~22用)(0は不使用)　mapSize=216での右欄(168*216)内での座標(yは適当基準(コード参照))
@@ -311,7 +311,7 @@ namespace JeqDB_Converter
                     var size = (float)(config.MagSizeType / 10 == 1
                         ? (Math.Max(1, data.Mag) * config.MapSize / 216d)
                         : (Math.Max(1, data.Mag) * (Math.Max(1, data.Mag) * config.MapSize / 216d))) * sizeX;//精度と統一のためd
-                    g.FillEllipse(Depth2Color(data.Depth, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
+                    g.FillEllipse(Depth2Color(data.Depth, color, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
                     g.DrawEllipse(pen_hypo, (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
                     if ((Math.Abs(data.MaxInt) >= config.TextInt && data.MaxInt != -1) || (config.TextInt == -1 && data.MaxInt == -1))
                     {
@@ -373,7 +373,7 @@ namespace JeqDB_Converter
             {
                 ConWrite("モードを入力してください。");
                 ConWrite("> 1.震央分布図");
-                ConWrite("> 2.M-T図");
+                ConWrite("> <<未実装>>2.M-T図");
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 var mode = Console.ReadLine();
                 switch (mode)
@@ -558,7 +558,7 @@ namespace JeqDB_Converter
                         var size = (float)(config.MagSizeType / 10 == 1
                             ? (Math.Max(1, data.Mag) * config.MapSize / 216d)
                             : (Math.Max(1, data.Mag) * (Math.Max(1, data.Mag) * config.MapSize / 216d))) * sizeX;//精度と統一のためd
-                        g.FillEllipse(Depth2Color(data.Depth, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
+                        g.FillEllipse(Depth2Color(data.Depth, color, alpha), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
                         g.DrawEllipse(new Pen(Color.FromArgb(alpha, 127, 127, 127)), (float)(((data.Lon - config.LonSta) * zoomW) - size / 2f), (float)(((config.LatEnd - data.Lat) * zoomH) - size / 2f), size, size);
                         if ((Math.Abs(data.MaxInt) >= config.TextInt && data.MaxInt != -1) || (config.TextInt == -1 && data.MaxInt == -1))//↑imageとの違い
                         {
@@ -708,13 +708,21 @@ namespace JeqDB_Converter
                     break;
             }
             // dep_legend
+            var lv = color.DepthLevel;
+            LEGEND_DEP_EX[1] = lv.L1;
+            LEGEND_DEP_EX[2] = lv.L2;
+            LEGEND_DEP_EX[3] = lv.L3;
+            LEGEND_DEP_EX[4] = lv.L4;
+            LEGEND_DEP_EX[5] = lv.L5;
+            LEGEND_DEP_EX[6] = lv.L6;
+            LEGEND_DEP_EX[7] = lv.L7;
             using (var textGP = new GraphicsPath())
                 for (int di = 0; di < LEGEND_DEP_EX.Length; di++)
                 {
                     //円部分
                     textGP.StartFigure();
                     textGP.AddString("●", font, 0, config.MapSize / 48f, new PointF(config.MapSize + config.MapSize * (di + 0.125f) / 10.8f, config.MapSize * 13f / 14f), StringFormat.GenericDefault);
-                    g.FillPath(Depth2Color(LEGEND_DEP_EX[di], 255), textGP);
+                    g.FillPath(Depth2Color(LEGEND_DEP_EX[di], color, 255), textGP);
                     g.DrawPath(new Pen(Color.FromArgb(color.Hypo_Alpha, color.Text), config.MapSize / 1080f), textGP);
                     textGP.Reset();
                     //文字部分

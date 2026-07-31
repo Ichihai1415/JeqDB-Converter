@@ -162,36 +162,92 @@ namespace JeqDB_Converter
         }
 
         [SupportedOSPlatform("windows")]//CA1416回避
-        public static SolidBrush Depth2Color(double? depth, int alpha = 204)
+        public static SolidBrush Depth2Color(double? depth, Config_Color? config = null, int alpha = 204)
         {
+            config ??= new Config_Color();
+            var lv = config.DepthLevel;
             var d = depth == null ? 0d : (double)depth;
             if (d < 0) d = 0;
             //Console.WriteLine(depth + "-" + d);
-            //震度データベースjsより
+            /*//震度データベースjsより https://www.data.jma.go.jp/eqdb/data/shindo/assets/index.js
+    const yT = e => {
+    let n = 0;
+    return e === "不明" || parseFloat(e) < 1 || e === "" || Number.isNaN(parseFloat(e)) ? n = 1 * 2.5 : parseFloat(e) > 8 ? n = 8 * 2.5 : n = parseFloat(e) * 2.5,
+    n
+}
+  , _T = e => {
+    let t = 0
+      , n = Number(e)
+      , i = 50;
+n <= 10 ? (i = 50 - 25 * ((10 - n) / 10), t = 0) : 
+n <= 20 ? t = 0 + 30 * ((n - 10) / 10) : 
+n <= 30 ? t = 30 + 30 * ((n - 20) / 10) : 
+n <= 50 ? t = 60 : 
+n <= 100 ? (t = 60 + 60 * ((n - 50) / 50), i = 50 + 25 * ((50 - n) / 100)) : 
+n <= 200 ? (t = 120 + 90 * ((n - 100) / 100), i = 25 - 30 * ((100 - n) / 100)) : 
+n <= 700 ? (t = 210 + 30 * ((n - 200) / 500), i = 55 + 30 * ((200 - n) / 500)) : (t = 240, i = 25),
+`hsl(${t}, 100%, ${i}%)`
+             */
+
+            /*震央分布 html内のscript
+             V = function(a) {
+                            var i = 0
+                              , e = Number(a)
+                              , n = 50;
+                            return e <= 10 ? (n = 50 - 25 * ((10 - e) / 10),
+                            i = 0) : e <= 20 ? i = 0 + 30 * ((e - 10) / 10) : e <= 30 ? i = 30 + 30 * ((e - 20) / 10) : e <= 50 ? i = 60 : e <= 100 ? (i = 60 + 60 * ((e - 50) / 50),
+                            n = 50 + 25 * ((50 - e) / 100)) : e <= 200 ? (i = 120 + 90 * ((e - 100) / 100),
+                            n = 25 - 30 * ((100 - e) / 100)) : e <= 700 ? (i = 210 + 30 * ((e - 200) / 500),
+                            n = 55 + 30 * ((200 - e) / 500)) : (i = 240,
+                            n = 25),
+                            {
+                                weight: .5,
+                                color: "#000000",
+                                fillColor: "hsl(" + i + ", 100%, " + n + "%)",
+                                opacity: 1,
+                                fillOpacity: .8
+                            }
+             */
+            /* hypLeg.svg コメントアウトされた色がある(50km,100km)
+<linearGradient id="grad2"  x1="100" y1="100" x2="380" y2="100" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+  <stop  offset="0%" stop-color="#800000" />
+  <stop  offset="14.3%" stop-color="#ff0000"/>
+  <stop  offset="28.5%" stop-color="#ff8c00"/>
+  <stop  offset="42.9%" stop-color="#ffff00"/>
+  <stop  offset="57.1%" stop-color="#ffff00"/>
+  <stop  offset="71.4%" stop-color="#008000"/>
+  <!--
+  <stop  offset="57.1%" stop-color="#00ff00"/>
+  <stop  offset="71.4%" stop-color="#008000"/>
+  -->
+  <stop  offset="85.7%" stop-color="#1e90ff"/>
+  <stop  offset="100%" stop-color="#00008b"/>
+</linearGradient>
+             */
             var l = 50d;
             var h = 0d;
-            if (d <= 10)
-                l = 50 - 25d * ((10d - d) / 10d);
-            else if (d <= 20)
-                h = 30d * ((d - 10d) / 10d);
-            else if (d <= 30)
-                h = 30d + 30d * ((d - 20d) / 10d);
-            else if (d <= 50)
+            if (d <= lv.L1)
+                l = 50 - 25d * ((lv.L1 - d) / lv.L1);
+            else if (d <= lv.L2)
+                h = 30d * ((d - lv.L1) / (lv.L2 - lv.L1));
+            else if (d <= lv.L3)
+                h = 30d + 30d * ((d - lv.L2) / (lv.L3 - lv.L2));
+            else if (d <= lv.L4)
                 h = 60d;
-            else if (d <= 100)
+            else if (d <= lv.L5)
             {
-                h = 60d + 60d * ((d - 50d) / 50d);
-                l = 50d + 25d * ((50d - d) / 100d);
+                h = 60d + 60d * ((d - lv.L4) / (lv.L5 - lv.L4));
+                l = 50d + 25d * ((lv.L4 - d) / (lv.L5 - lv.L4));//jsではミス？で/100= /lv.L5 - lv.L4)/2 or /(lv.L6 - lv.L5))になってる
             }
-            else if (d <= 200)
+            else if (d <= lv.L6)
             {
-                h = 120d + 90d * ((d - 100d) / 100d);
-                l = 25d - 30d * ((100d - d) / 100d);
+                h = 120d + 90d * ((d - lv.L5) / (lv.L6 - lv.L5));
+                l = 25d - 30d * ((lv.L5 - d) / (lv.L6 - lv.L5));
             }
-            else if (d <= 700)
+            else if (d <= lv.L7)
             {
-                h = 210d + 30d * ((d - 200d) / 500d);
-                l = 55d + 30d * ((200d - d) / 500d);
+                h = 210d + 30d * ((d - lv.L6) / (lv.L7 - lv.L6));
+                l = 55d + 30d * ((lv.L6 - d) / (lv.L7 - lv.L6));
             }
             else
             {
@@ -407,6 +463,50 @@ namespace JeqDB_Converter
         /// マグニチュード凡例の塗りつぶし
         /// </summary>
         public Color Legend_Mag_Fill { get; set; } = Color.Red;
+
+
+        public DepthColorLevel DepthLevel { get; set; } = new();
+
+        /// <summary>
+        /// 気象庁標準の深さ色の段階の深さの値
+        /// </summary>
+        public class DepthColorLevel
+        {
+            /// <summary>
+            /// レベル1: 標準10km
+            /// </summary>
+            public int L1 { get; set; } = 10;
+
+            /// <summary>
+            /// レベル2: 標準20km
+            /// </summary>
+            public int L2 { get; set; } = 20;
+
+            /// <summary>
+            /// レベル3: 標準30km
+            /// </summary>
+            public int L3 { get; set; } = 30;
+
+            /// <summary>
+            /// レベル4: 標準50km
+            /// </summary>
+            public int L4 { get; set; } = 50;
+
+            /// <summary>
+            /// レベル5: 標準100km
+            /// </summary>
+            public int L5 { get; set; } = 100;
+
+            /// <summary>
+            /// レベル6: 標準200km
+            /// </summary>
+            public int L6 { get; set; } = 200;
+
+            /// <summary>
+            /// レベル7: 標準700km
+            /// </summary>
+            public int L7 { get; set; } = 700;
+        }
     }
 
     /// <summary>
