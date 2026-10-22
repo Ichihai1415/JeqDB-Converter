@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -895,7 +896,14 @@ y
             return mapImg;
         }
 
-        public static HttpClient client = new();
+        public static HttpClient client = new(
+            new HttpClientHandler()
+            {
+                AutomaticDecompression =
+                    DecompressionMethods.GZip |
+                    DecompressionMethods.Deflate
+            }
+        );
 
         /// <summary>
         /// 震度データベースcsvを取得します。
